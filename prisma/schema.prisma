@@ -1,0 +1,516 @@
+// FreshFind - Prisma Database Schema
+// Production-Ready Schema supporting PostgreSQL, Clean Architecture & DDD
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  BUSINESS_OWNER
+  BUSINESS_MANAGER
+  BUSINESS_STAFF
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+enum BusinessStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OfferStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  EXPIRED
+  CANCELLED
+}
+
+enum OrderStatus {
+  RESERVED
+  PAYMENT_PENDING
+  PAID
+  READY_FOR_PICKUP
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentMethodType {
+  STRIPE_CARD
+  MTN_MOMO
+  AIRTEL_MONEY
+  WALLET
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+  REFUNDED
+}
+
+enum TransactionType {
+  DEPOSIT
+  PAYMENT
+  REFUND
+  CASHBACK
+  REWARD_PAYOUT
+}
+
+enum NotificationType {
+  ORDER_RESERVED
+  ORDER_PAID
+  READY_FOR_PICKUP
+  ORDER_COMPLETED
+  OFFER_ALERT
+  PROMOTION
+  SYSTEM
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+// ------------------------------------------------------
+// USER & AUTHENTICATION MODULE
+// ------------------------------------------------------
+
+model User {
+  id                String       @id @default(uuid())
+  email             String       @unique
+  passwordHash      String?
+  fullName          String
+  phone             String?      @unique
+  avatarUrl         String?
+  role              Role         @default(CUSTOMER)
+  status            UserStatus   @default(ACTIVE)
+  emailVerified     Boolean      @default(false)
+  phoneVerified     Boolean      @default(false)
+  
+  // Auth Providers
+  googleId          String?      @unique
+  appleId           String?      @unique
+
+  // Audit Fields
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+
+  // Relationships
+  addresses         Address[]
+  wallet            UserWallet?
+  businesses        Business[]        @relation("BusinessOwner")
+  staffMemberships  BusinessStaff[]
+  orders            Order[]
+  reviews           Review[]
+  favorites         Favorite[]
+  notifications     Notification[]
+  loyaltyAccount    LoyaltyAccount?
+  disputesSubmitted Dispute[]         @relation("DisputeSubmitter")
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+}
+
+model Address {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label        String    // e.g. Home, Work
+  street       String
+  city         String
+  state        String?
+  postalCode   String?
+  country      String    @default("Rwanda")
+  latitude     Float
+  longitude    Float
+  isDefault    Boolean   @default(false)
+  
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([latitude, longitude])
+}
+
+model UserWallet {
+  id           String              @id @default(uuid())
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Decimal             @default(0.00) @db.Decimal(12, 2)
+  currency     String              @default("RWF")
+  
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id           String          @id @default(uuid())
+  walletId     String
+  wallet       UserWallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount       Decimal         @db.Decimal(12, 2)
+  type         TransactionType
+  reference    String          @unique
+  description  String?
+  
+  createdAt    DateTime        @default(now())
+
+  @@index([walletId])
+}
+
+// ------------------------------------------------------
+// BUSINESS & STORE MODULE
+// ------------------------------------------------------
+
+model Business {
+  id             String            @id @default(uuid())
+  ownerId        String
+  owner          User              @relation("BusinessOwner", fields: [ownerId], references: [id])
+  name           String
+  slug           String            @unique
+  description    String?
+  logoUrl        String?
+  bannerUrl      String?
+  phone          String
+  email          String
+  status         BusinessStatus    @default(PENDING_APPROVAL)
+  isVerified     Boolean           @default(false)
+  rating         Float             @default(0.0)
+  totalReviews   Int               @default(0)
+
+  // Audit
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  location       BusinessLocation?
+  staff          BusinessStaff[]
+  offers         Offer[]
+  operatingHours OperatingHours[]
+  favorites      Favorite[]
+  reviews        Review[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model BusinessLocation {
+  id           String   @id @default(uuid())
+  businessId   String   @unique
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  district     String?
+  country      String   @default("Rwanda")
+  latitude     Float
+  longitude    Float
+
+  @@index([latitude, longitude])
+}
+
+model OperatingHours {
+  id           String   @id @default(uuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int      // 0 = Sunday, 6 = Saturday
+  openTime     String   // e.g. "08:00"
+  closeTime    String   // e.g. "20:00"
+  isClosed     Boolean  @default(false)
+
+  @@unique([businessId, dayOfWeek])
+}
+
+model BusinessStaff {
+  id           String   @id @default(uuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         Role     @default(BUSINESS_STAFF)
+
+  createdAt    DateTime @default(now())
+
+  @@unique([businessId, userId])
+}
+
+// ------------------------------------------------------
+// CATALOG & OFFER MANAGEMENT MODULE
+// ------------------------------------------------------
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  icon        String?
+  description String?
+
+  offers      Offer[]
+}
+
+model Offer {
+  id               String          @id @default(uuid())
+  businessId       String
+  business         Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  categoryId       String
+  category         Category        @relation(fields: [categoryId], references: [id])
+  
+  title            String
+  description      String
+  originalPrice    Decimal         @db.Decimal(10, 2)
+  discountedPrice  Decimal         @db.Decimal(10, 2)
+  quantityTotal    Int
+  quantityAvailable Int
+  
+  pickupStart      DateTime
+  pickupEnd        DateTime
+  pickupInstructions String?
+  status           OfferStatus     @default(ACTIVE)
+
+  // Dietary Preferences
+  isVegetarian     Boolean         @default(false)
+  isVegan          Boolean         @default(false)
+  isHalal          Boolean         @default(false)
+  isGlutenFree     Boolean         @default(false)
+
+  // AI Insights Cache
+  aiPredictedDemand Float?         // 0.0 to 1.0 likelihood score
+  aiSuggestedPrice Decimal?        @db.Decimal(10, 2)
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+
+  images           OfferImage[]
+  orders           OrderItem[]
+  aiLogs           AIPredictionLog[]
+
+  @@index([businessId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([pickupStart, pickupEnd])
+}
+
+model OfferImage {
+  id        String   @id @default(uuid())
+  offerId   String
+  offer     Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  isPrimary Boolean  @default(false)
+}
+
+// ------------------------------------------------------
+// ORDER & RESERVATION MODULE
+// ------------------------------------------------------
+
+model Order {
+  id               String            @id @default(uuid())
+  orderNumber      String            @unique
+  userId           String
+  user             User              @relation(fields: [userId], references: [id])
+  status           OrderStatus       @default(RESERVED)
+  
+  subtotal         Decimal           @db.Decimal(10, 2)
+  discountAmount   Decimal           @default(0.00) @db.Decimal(10, 2)
+  totalAmount      Decimal           @db.Decimal(10, 2)
+  
+  couponId         String?
+  coupon           Coupon?           @relation(fields: [couponId], references: [id])
+
+  reservedUntil    DateTime          // 15 minute reservation lock
+  collectedAt      DateTime?
+  cancelledAt      DateTime?
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  items            OrderItem[]
+  payment          Payment?
+  qrCode           QRPickupCode?
+  impact           EnvironmentalImpact?
+  disputes         Dispute[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  offerId      String
+  offer        Offer    @relation(fields: [offerId], references: [id])
+  quantity     Int
+  unitPrice    Decimal  @db.Decimal(10, 2)
+  totalPrice   Decimal  @db.Decimal(10, 2)
+}
+
+model QRPickupCode {
+  id           String    @id @default(uuid())
+  orderId      String    @unique
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  qrToken      String    @unique
+  qrImageUrl   String
+  isScanned    Boolean   @default(false)
+  scannedAt    DateTime?
+  scannedBy    String?
+
+  createdAt    DateTime  @default(now())
+}
+
+// ------------------------------------------------------
+// PAYMENT & TRANSACTIONS MODULE
+// ------------------------------------------------------
+
+model Payment {
+  id              String            @id @default(uuid())
+  orderId         String            @unique
+  order           Order             @relation(fields: [orderId], references: [id])
+  methodType      PaymentMethodType
+  status          PaymentStatus     @default(PENDING)
+  amount          Decimal           @db.Decimal(10, 2)
+  currency        String            @default("RWF")
+  transactionRef String            @unique
+  providerMeta    String?           // JSON string for Stripe/MoMo refs
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model Coupon {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  discountPercent Float?
+  discountFlat   Decimal?  @db.Decimal(10, 2)
+  minOrderAmount Decimal   @default(0.00) @db.Decimal(10, 2)
+  maxUses        Int       @default(100)
+  usedCount      Int       @default(0)
+  expiresAt      DateTime
+  isActive       Boolean   @default(true)
+
+  orders         Order[]
+}
+
+// ------------------------------------------------------
+// SOCIAL, REVIEWS & LOYALTY MODULE
+// ------------------------------------------------------
+
+model Favorite {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, businessId])
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  rating       Int      // 1 to 5
+  comment      String?
+  
+  createdAt    DateTime @default(now())
+
+  @@index([businessId])
+}
+
+model LoyaltyAccount {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points          Int      @default(0)
+  badgeTier       String   @default("Eco Novice") // Eco Novice, Food Hero, Waste Warrior, Planet Savior
+  mealsRescued    Int      @default(0)
+  co2SavedKg      Float    @default(0.0)
+
+  updatedAt       DateTime @updatedAt
+}
+
+model EnvironmentalImpact {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id])
+  foodWeightKg  Float    // Estimated weight rescued
+  co2SavedKg    Float    // Estimated CO2 avoided
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  body        String
+  type        NotificationType
+  isRead      Boolean          @default(false)
+  
+  createdAt   DateTime         @default(now())
+
+  @@index([userId])
+}
+
+model Dispute {
+  id          String        @id @default(uuid())
+  orderId     String
+  order       Order         @relation(fields: [orderId], references: [id])
+  userId      String
+  user        User          @relation("DisputeSubmitter", fields: [userId], references: [id])
+  reason      String
+  description String
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// ------------------------------------------------------
+// AI & ANALYTICS MODULE
+// ------------------------------------------------------
+
+model AIPredictionLog {
+  id               String   @id @default(uuid())
+  offerId          String
+  offer            Offer    @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  demandScore      Float    // 0 to 1
+  recommendedPrice Decimal  @db.Decimal(10, 2)
+  wasteRiskFactor  Float    // 0 to 1
+  predictedSellout DateTime?
+
+  createdAt        DateTime @default(now())
+
+  @@index([offerId])
+}

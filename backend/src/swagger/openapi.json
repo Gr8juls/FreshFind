@@ -1,0 +1,86 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FreshFind Food Rescue API Engine",
+    "description": "Production-grade RESTful API specification for FreshFind Surplus Food Marketplace, serving Customers, Businesses, and Admins.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "FreshFind Engineering Team",
+      "email": "api@freshfind.rw"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.freshfind.rw/v1",
+      "description": "Production API Server"
+    },
+    {
+      "url": "http://localhost:4000/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register new user account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "SecurePass123!" },
+                  "fullName": { "type": "string", "example": "Jean-Luc Rutagangwa" },
+                  "phone": { "type": "string", "example": "+250788123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully with JWT access token" }
+        }
+      }
+    },
+    "/offers/nearby": {
+      "get": {
+        "summary": "Find nearby surplus food offers by geolocation",
+        "parameters": [
+          { "name": "lat", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "lng", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "radiusKm", "in": "query", "schema": { "type": "number", "default": 10 } },
+          { "name": "dietary", "in": "query", "schema": { "type": "string", "example": "vegetarian,halal" } }
+        ],
+        "responses": {
+          "200": { "description": "List of active surplus offers" }
+        }
+      }
+    },
+    "/orders/reserve": {
+      "post": {
+        "summary": "Reserve surplus offer and lock inventory for 15 minutes",
+        "responses": {
+          "201": { "description": "Order created with RESERVED status and 15-minute expiration clock" }
+        }
+      }
+    },
+    "/orders/verify-qr": {
+      "post": {
+        "summary": "Merchant scans customer QR code to verify pickup",
+        "responses": {
+          "200": { "description": "Order verified and marked as COMPLETED" }
+        }
+      }
+    },
+    "/ai/predict-demand": {
+      "post": {
+        "summary": "AI Demand Prediction & Pricing Recommendation",
+        "responses": {
+          "200": { "description": "AI Demand score and suggested discount price curve" }
+        }
+      }
+    }
+  }
+}
