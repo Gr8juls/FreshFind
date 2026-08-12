@@ -1,0 +1,29 @@
+{
+  // Recommended extensions for FreshFind
+  // Team members will be prompted to install these when they open the project
+  "recommendations": [
+    // TypeScript & Next.js
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+
+    // Prisma
+    "Prisma.prisma",
+
+    // React / JSX
+    "dsznajder.es7-react-js-snippets",
+    "burkeholland.simple-react-snippets",
+
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Code quality
+    "streetsidesoftware.code-spell-checker",
+    "usernamehw.errorlens",
+    "christian-kohler.path-intellisense",
+
+    // Environment files
+    "mikestead.dotenv"
+  ]
+}
