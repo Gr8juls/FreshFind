@@ -36,7 +36,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
         {!imageError && offer.imageUrl ? (
           <img
             src={offer.imageUrl}
-            alt=""
+            alt={offer.title}
             onError={() => setImageError(true)}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
