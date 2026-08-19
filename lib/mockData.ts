@@ -17,6 +17,8 @@ export interface Business {
   commissionRate?: number;
   tinNumber?: string;
   payoutPhone?: string;
+  lat?: number;
+  lng?: number;
   phone: string;
 }
 
@@ -96,6 +98,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     commissionRate: 15,
     tinNumber: 'TIN-88291024',
     payoutPhone: '+250 788 123 456',
+    lat: -1.9355,
+    lng: 30.0880,
     phone: '+250 788 123 456',
   },
   {
@@ -117,6 +121,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     commissionRate: 15,
     tinNumber: 'TIN-44210982',
     payoutPhone: '+250 788 987 654',
+    lat: -1.9536,
+    lng: 30.0605,
     phone: '+250 788 987 654',
   },
   {
@@ -138,6 +144,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     commissionRate: 12,
     tinNumber: 'TIN-11930291',
     payoutPhone: '+250 788 555 777',
+    lat: -1.9440,
+    lng: 30.0750,
     phone: '+250 788 555 777',
   },
   {
@@ -159,6 +167,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     commissionRate: 15,
     tinNumber: 'TIN-55092183',
     payoutPhone: '+250 788 222 333',
+    lat: -1.9560,
+    lng: 30.1080,
     phone: '+250 788 222 333',
   },
   {
@@ -180,6 +190,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     commissionRate: 15,
     tinNumber: 'TIN-77382910',
     payoutPhone: '+250 788 444 888',
+    lat: -1.9520,
+    lng: 30.0780,
     phone: '+250 788 444 888',
   },
   {
@@ -201,6 +213,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     commissionRate: 15,
     tinNumber: 'TIN-99482710',
     payoutPhone: '+250 788 111 222',
+    lat: -1.9410,
+    lng: 30.0720,
     phone: '+250 788 111 222',
   },
   {
@@ -221,7 +235,8 @@ export const INITIAL_BUSINESSES: Business[] = [
     status: 'PENDING_APPROVAL',
     commissionRate: 15,
     tinNumber: 'TIN-33201948',
-    payoutPhone: '+250 788 777 999',
+    lat: -1.9480,
+    lng: 30.0570,
     phone: '+250 788 777 999',
   }
 ];

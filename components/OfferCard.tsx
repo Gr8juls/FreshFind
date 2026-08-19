@@ -160,9 +160,9 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
 
           <button
             onClick={() => onSelect(offer)}
-            className="bg-brand-500 hover:bg-brand-400 text-slate-950 px-3.5 py-2 rounded-xl font-bold text-xs shadow-lg shadow-brand-500/20 transition transform active:scale-95"
+            className="bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 px-3.5 py-2 rounded-xl font-black text-xs shadow-lg shadow-brand-500/20 transition transform active:scale-95 cursor-pointer"
           >
-            Reserve Offer
+            Reserve Surprise Bag
           </button>
         </div>
       </div>
