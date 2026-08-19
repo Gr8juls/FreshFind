@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { useApp } from '@/lib/store';
 import { 
   ShoppingBag, 
@@ -9,23 +11,32 @@ import {
   Monitor, 
   Wallet, 
   QrCode,
-  Search
+  Search,
+  LogOut,
+  LogIn,
+  User,
+  ShieldCheck,
+  Store
 } from 'lucide-react';
 
-interface NavbarProps {
-  onOpenCart: () => void;
-  onOpenQRScanner: () => void;
-}
-
-export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
+export function Navbar() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { 
-    role, setRole, 
     viewFrame, setViewFrame, 
     user, 
+    isAuthenticated,
+    logout,
     cartOffer, 
     cartQuantity,
-    searchQuery, setSearchQuery
+    searchQuery, setSearchQuery,
+    setIsCheckoutModalOpen,
+    setIsQRScannerModalOpen
   } = useApp();
+
+  let activeRole = user.role || 'CUSTOMER';
+  if (pathname.includes('/business')) activeRole = 'BUSINESS_OWNER';
+  if (pathname.includes('/admin')) activeRole = 'ADMIN';
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-800">
@@ -33,7 +44,7 @@ export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
         <div className="flex items-center justify-between h-16">
           
           {/* Logo & Platform Name */}
-          <div className="flex items-center space-x-3 cursor-pointer">
+          <Link href="/" className="flex items-center space-x-3 cursor-pointer">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
               <Leaf className="w-6 h-6 text-slate-950 font-bold" />
             </div>
@@ -45,10 +56,10 @@ export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
                 Food Rescue Marketplace
               </span>
             </div>
-          </div>
+          </Link>
 
           {/* Search bar (Desktop Customer mode) */}
-          {role === 'CUSTOMER' && (
+          {activeRole === 'CUSTOMER' && (
             <div className="hidden md:flex flex-1 max-w-md mx-8 relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -61,7 +72,7 @@ export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
             </div>
           )}
 
-          {/* Controls & Role Selectors */}
+          {/* Controls & User Session */}
           <div className="flex items-center space-x-3">
             
             {/* View Mode Toggle (Desktop vs Mobile Frame) */}
@@ -86,21 +97,30 @@ export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
               </button>
             </div>
 
-            {/* Role Switcher */}
-            <div className="relative">
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-                className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-brand-400 focus:outline-none focus:border-brand-500 cursor-pointer"
+            {/* Merchant Quick Portal Link if Business Owner or Admin */}
+            {isAuthenticated && (user.role === 'BUSINESS_OWNER' || user.role === 'ADMIN') && !pathname.startsWith('/business') && (
+              <Link
+                href="/business"
+                className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 border border-brand-500/30 text-brand-400 px-3 py-1.5 rounded-xl text-xs font-semibold transition"
               >
-                <option value="CUSTOMER">Customer View</option>
-                <option value="BUSINESS_OWNER">Business Portal</option>
-                <option value="ADMIN">Admin Panel</option>
-              </select>
-            </div>
+                <Store className="w-3.5 h-3.5" />
+                <span>Business Portal</span>
+              </Link>
+            )}
+
+            {/* Admin Quick Link if Admin */}
+            {isAuthenticated && user.role === 'ADMIN' && !pathname.startsWith('/admin') && (
+              <Link
+                href="/admin"
+                className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 border border-purple-500/30 text-purple-400 px-3 py-1.5 rounded-xl text-xs font-semibold transition"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Panel</span>
+              </Link>
+            )}
 
             {/* Customer Cart & Wallet Controls */}
-            {role === 'CUSTOMER' && (
+            {activeRole === 'CUSTOMER' && (
               <>
                 <div className="hidden sm:flex items-center space-x-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300">
                   <Wallet className="w-3.5 h-3.5 text-brand-400" />
@@ -108,7 +128,7 @@ export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
                 </div>
 
                 <button
-                  onClick={onOpenCart}
+                  onClick={() => setIsCheckoutModalOpen(true)}
                   className="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition"
                 >
                   <ShoppingBag className="w-5 h-5 text-brand-400" />
@@ -122,14 +142,43 @@ export function Navbar({ onOpenCart, onOpenQRScanner }: NavbarProps) {
             )}
 
             {/* Merchant QR Scanner Launcher */}
-            {role === 'BUSINESS_OWNER' && (
+            {activeRole === 'BUSINESS_OWNER' && (
               <button
-                onClick={onOpenQRScanner}
+                onClick={() => setIsQRScannerModalOpen(true)}
                 className="flex items-center space-x-2 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-lg shadow-brand-500/20 transition"
               >
                 <QrCode className="w-4 h-4" />
                 <span>Scan Customer QR</span>
               </button>
+            )}
+
+            {/* Authentication Buttons */}
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-2 pl-2 border-l border-slate-800">
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs font-bold text-slate-200">{user.fullName || user.email}</span>
+                  <span className="text-[10px] font-medium text-brand-400">
+                    {user.role === 'BUSINESS_OWNER' ? 'Merchant' : user.role === 'ADMIN' ? 'Admin' : 'Customer'}
+                  </span>
+                </div>
+                <button
+                  onClick={logout}
+                  title="Sign out"
+                  className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 pl-2 border-l border-slate-800">
+                <Link
+                  href="/login"
+                  className="flex items-center space-x-1.5 bg-brand-500 hover:bg-brand-400 text-slate-950 px-3.5 py-1.5 rounded-xl font-bold text-xs shadow-lg shadow-brand-500/20 transition cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </Link>
+              </div>
             )}
 
           </div>

@@ -1,7 +1,25 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
-import { Offer, Business, Order, UserProfile, INITIAL_OFFERS, INITIAL_BUSINESSES, INITIAL_USER } from './mockData';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { 
+  Offer, 
+  Business, 
+  Order, 
+  UserProfile, 
+  Dispute,
+  PlatformUser,
+  PayoutRecord,
+  AuditLog,
+  SystemSettings,
+  INITIAL_OFFERS, 
+  INITIAL_BUSINESSES, 
+  INITIAL_USER,
+  INITIAL_DISPUTES,
+  INITIAL_PLATFORM_USERS,
+  INITIAL_PAYOUTS,
+  INITIAL_AUDIT_LOGS,
+  INITIAL_SYSTEM_SETTINGS
+} from './mockData';
 
 export type UserRole = 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN';
 export type ViewFrame = 'DESKTOP' | 'MOBILE_EMULATOR';
@@ -12,13 +30,29 @@ interface AppContextType {
   viewFrame: ViewFrame;
   setViewFrame: (frame: ViewFrame) => void;
   
+  isCheckoutModalOpen: boolean;
+  setIsCheckoutModalOpen: (isOpen: boolean) => void;
+  isQRScannerModalOpen: boolean;
+  setIsQRScannerModalOpen: (isOpen: boolean) => void;
+  
   user: UserProfile;
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
+  isAuthenticated: boolean;
+  isLoadingSession: boolean;
+  fetchSession: () => Promise<void>;
+  logout: () => Promise<void>;
   
   offers: Offer[];
   businesses: Business[];
   orders: Order[];
   favorites: string[]; // businessIds
+  
+  // Admin Data & Management
+  users: PlatformUser[];
+  disputes: Dispute[];
+  payouts: PayoutRecord[];
+  auditLogs: AuditLog[];
+  systemSettings: SystemSettings;
   
   // Search & Filters
   searchQuery: string;
@@ -52,8 +86,21 @@ interface AppContextType {
   toggleFavorite: (businessId: string) => void;
   verifyAndCollectQR: (qrToken: string) => { success: boolean; message: string; order?: Order };
   createMerchantOffer: (newOffer: Omit<Offer, 'id' | 'businessLogo' | 'rating' | 'aiDemandScore' | 'aiPriceSuggestion'>) => void;
-  approveBusiness: (businessId: string) => void;
   addWalletBalance: (amount: number) => void;
+
+  // Admin Super-Rights Actions
+  approveBusiness: (businessId: string) => void;
+  suspendBusiness: (businessId: string) => void;
+  reactivateBusiness: (businessId: string) => void;
+  updateBusinessCommission: (businessId: string, commissionRate: number) => void;
+  updateUserRole: (userId: string, newRole: UserRole) => void;
+  updateUserStatus: (userId: string, newStatus: 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION') => void;
+  creditUserWallet: (userId: string, amount: number) => void;
+  resolveDispute: (disputeId: string, action: 'RESOLVED_REFUND' | 'REJECTED' | 'UNDER_REVIEW', notes?: string) => void;
+  deleteOfferByAdmin: (offerId: string) => void;
+  processMerchantPayout: (payoutId: string) => void;
+  updateSystemSettings: (newSettings: Partial<SystemSettings>) => void;
+  addAuditLog: (action: string, target: string, type: AuditLog['type'], severity?: AuditLog['severity']) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -61,11 +108,23 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>('CUSTOMER');
   const [viewFrame, setViewFrame] = useState<ViewFrame>('DESKTOP');
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isQRScannerModalOpen, setIsQRScannerModalOpen] = useState(false);
   
   const [user, setUser] = useState<UserProfile>(INITIAL_USER);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoadingSession, setIsLoadingSession] = useState<boolean>(true);
+
   const [offers, setOffers] = useState<Offer[]>(INITIAL_OFFERS);
   const [businesses, setBusinesses] = useState<Business[]>(INITIAL_BUSINESSES);
   const [favorites, setFavorites] = useState<string[]>(['b1', 'b4']);
+  
+  // Admin Data States
+  const [users, setUsers] = useState<PlatformUser[]>(INITIAL_PLATFORM_USERS);
+  const [disputes, setDisputes] = useState<Dispute[]>(INITIAL_DISPUTES);
+  const [payouts, setPayouts] = useState<PayoutRecord[]>(INITIAL_PAYOUTS);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings>(INITIAL_SYSTEM_SETTINGS);
   
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,6 +158,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       paymentMethod: 'MTN_MOMO',
     }
   ]);
+
+  const addAuditLog = (action: string, target: string, type: AuditLog['type'], severity: AuditLog['severity'] = 'INFO') => {
+    const newLog: AuditLog = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      actor: user?.email || 'admin@freshfind.com',
+      action,
+      target,
+      type,
+      severity,
+    };
+    setAuditLogs(prev => [newLog, ...prev]);
+  };
+
+  const fetchSession = useCallback(async () => {
+    try {
+      setIsLoadingSession(true);
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          setIsAuthenticated(true);
+          setRole(data.user.role as UserRole);
+          setUser(prev => ({
+            ...prev,
+            id: data.user.id,
+            fullName: data.user.fullName || prev.fullName,
+            email: data.user.email || prev.email,
+            role: data.user.role,
+            walletBalance: data.user.walletBalance ?? prev.walletBalance,
+            points: data.user.points ?? prev.points,
+            mealsRescued: data.user.mealsRescued ?? prev.mealsRescued,
+            co2SavedKg: data.user.co2SavedKg ?? prev.co2SavedKg,
+          }));
+          return;
+        }
+      }
+      setIsAuthenticated(false);
+    } catch (err) {
+      console.error('Failed to fetch session', err);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoadingSession(false);
+    }
+  }, []);
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
+    setIsAuthenticated(false);
+    setUser(INITIAL_USER);
+    setRole('CUSTOMER');
+    window.location.href = '/login';
+  };
+
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
 
   const addToCart = (offer: Offer) => {
     setCartOffer(offer);
@@ -188,26 +308,130 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOffers(prev => [createdOffer, ...prev]);
   };
 
-  const approveBusiness = (businessId: string) => {
-    setBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, isVerified: true } : b));
-  };
-
   const addWalletBalance = (amount: number) => {
     setUser(prev => ({ ...prev, walletBalance: prev.walletBalance + amount }));
+  };
+
+  // ================= ADMIN SUPER-RIGHTS ACTIONS =================
+
+  const approveBusiness = (businessId: string) => {
+    setBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, isVerified: true, status: 'APPROVED' } : b));
+    const target = businesses.find(b => b.id === businessId)?.name || businessId;
+    addAuditLog('STORE_VERIFIED_AND_APPROVED', target, 'APPROVAL', 'INFO');
+  };
+
+  const suspendBusiness = (businessId: string) => {
+    setBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, isVerified: false, status: 'SUSPENDED' } : b));
+    const target = businesses.find(b => b.id === businessId)?.name || businessId;
+    addAuditLog('STORE_SUSPENDED', target, 'SECURITY', 'WARNING');
+  };
+
+  const reactivateBusiness = (businessId: string) => {
+    setBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, isVerified: true, status: 'APPROVED' } : b));
+    const target = businesses.find(b => b.id === businessId)?.name || businessId;
+    addAuditLog('STORE_REACTIVATED', target, 'APPROVAL', 'INFO');
+  };
+
+  const updateBusinessCommission = (businessId: string, commissionRate: number) => {
+    setBusinesses(prev => prev.map(b => b.id === businessId ? { ...b, commissionRate } : b));
+    const target = businesses.find(b => b.id === businessId)?.name || businessId;
+    addAuditLog(`COMMISSION_UPDATED_${commissionRate}%`, target, 'RBAC', 'INFO');
+  };
+
+  const updateUserRole = (userId: string, newRole: UserRole) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    const target = users.find(u => u.id === userId)?.email || userId;
+    addAuditLog(`USER_ROLE_PROMOTED_${newRole}`, target, 'RBAC', 'WARNING');
+  };
+
+  const updateUserStatus = (userId: string, newStatus: 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION') => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+    const target = users.find(u => u.id === userId)?.email || userId;
+    addAuditLog(`USER_STATUS_${newStatus}`, target, 'SECURITY', newStatus === 'SUSPENDED' ? 'CRITICAL' : 'INFO');
+  };
+
+  const creditUserWallet = (userId: string, amount: number) => {
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, walletBalance: u.walletBalance + amount } : u));
+    if (user.id === userId) {
+      setUser(prev => ({ ...prev, walletBalance: prev.walletBalance + amount }));
+    }
+    const target = users.find(u => u.id === userId)?.email || userId;
+    addAuditLog(`ADMIN_WALLET_CREDIT_${amount.toLocaleString()}RWF`, target, 'REFUND', 'INFO');
+  };
+
+  const resolveDispute = (disputeId: string, action: 'RESOLVED_REFUND' | 'REJECTED' | 'UNDER_REVIEW', notes?: string) => {
+    setDisputes(prev => prev.map(d => {
+      if (d.id === disputeId) {
+        const updatedStatus = action === 'RESOLVED_REFUND' ? 'RESOLVED' : action === 'REJECTED' ? 'REJECTED' : 'UNDER_REVIEW';
+        return {
+          ...d,
+          status: updatedStatus,
+          resolutionNotes: notes || (action === 'RESOLVED_REFUND' ? `Full refund of ${d.amount.toLocaleString()} RWF credited to customer wallet.` : 'Dispute reviewed and resolved.')
+        };
+      }
+      return d;
+    }));
+
+    const targetDispute = disputes.find(d => d.id === disputeId);
+    if (targetDispute) {
+      if (action === 'RESOLVED_REFUND') {
+        // Auto credit customer wallet
+        const targetUser = users.find(u => u.email.toLowerCase() === targetDispute.customerEmail.toLowerCase());
+        if (targetUser) {
+          creditUserWallet(targetUser.id, targetDispute.amount);
+        }
+        addAuditLog(`DISPUTE_REFUND_APPROVED_${targetDispute.amount}RWF`, `Order #${targetDispute.orderNumber}`, 'REFUND', 'WARNING');
+      } else {
+        addAuditLog(`DISPUTE_${action}`, `Order #${targetDispute.orderNumber}`, 'MODERATION', 'INFO');
+      }
+    }
+  };
+
+  const deleteOfferByAdmin = (offerId: string) => {
+    const targetOffer = offers.find(o => o.id === offerId);
+    setOffers(prev => prev.filter(o => o.id !== offerId));
+    addAuditLog('OFFER_TAKEDOWN_MODERATION', targetOffer?.title || offerId, 'MODERATION', 'WARNING');
+  };
+
+  const processMerchantPayout = (payoutId: string) => {
+    setPayouts(prev => prev.map(p => {
+      if (p.id === payoutId) {
+        return {
+          ...p,
+          status: 'PROCESSED',
+          transactionRef: `MOMO-REF-${Math.floor(10000000 + Math.random() * 90000000)}`
+        };
+      }
+      return p;
+    }));
+    const target = payouts.find(p => p.id === payoutId);
+    addAuditLog(`PAYOUT_PROCESSED_${target?.netPayout?.toLocaleString()}RWF`, target?.businessName || payoutId, 'PAYOUT', 'INFO');
+  };
+
+  const updateSystemSettings = (newSettings: Partial<SystemSettings>) => {
+    setSystemSettings(prev => ({ ...prev, ...newSettings }));
+    addAuditLog('GLOBAL_SYSTEM_SETTINGS_MODIFIED', JSON.stringify(newSettings), 'SECURITY', 'WARNING');
   };
 
   return (
     <AppContext.Provider value={{
       role, setRole,
       viewFrame, setViewFrame,
+      isCheckoutModalOpen, setIsCheckoutModalOpen,
+      isQRScannerModalOpen, setIsQRScannerModalOpen,
       user, setUser,
+      isAuthenticated, isLoadingSession, fetchSession, logout,
       offers, businesses, orders, favorites,
+      users, disputes, payouts, auditLogs, systemSettings,
       searchQuery, setSearchQuery,
       selectedCategory, setSelectedCategory,
       filterDietary, setFilterDietary,
       maxDistanceKm, setMaxDistanceKm,
       cartOffer, cartQuantity, setCartQuantity, addToCart, clearCart, checkoutOrder,
-      toggleFavorite, verifyAndCollectQR, createMerchantOffer, approveBusiness, addWalletBalance,
+      toggleFavorite, verifyAndCollectQR, createMerchantOffer, addWalletBalance,
+      approveBusiness, suspendBusiness, reactivateBusiness, updateBusinessCommission,
+      updateUserRole, updateUserStatus, creditUserWallet, resolveDispute,
+      deleteOfferByAdmin, processMerchantPayout, updateSystemSettings, addAuditLog
     }}>
       {children}
     </AppContext.Provider>

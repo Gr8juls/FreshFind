@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
+import { NotificationProvider } from "@/components/NotificationProvider";
 
 export const metadata: Metadata = {
   title: "FreshFind | Production Food Rescue Marketplace",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="bg-slate-900 text-slate-100 min-h-screen">
         <AppProvider>
-          {children}
+          <NotificationProvider>
+            {children}
+          </NotificationProvider>
         </AppProvider>
       </body>
     </html>
