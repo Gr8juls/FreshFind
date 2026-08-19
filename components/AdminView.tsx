@@ -34,7 +34,7 @@ import {
   Sparkles,
   ShoppingBag
 } from 'lucide-react';
-import { UserRole } from '@/lib/mockData';
+import { UserRole } from '@/lib/store';
 
 type AdminTab = 'STORES' | 'USERS' | 'DISPUTES' | 'CATALOG' | 'PAYOUTS' | 'SETTINGS_LOGS';
 

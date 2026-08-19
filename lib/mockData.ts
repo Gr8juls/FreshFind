@@ -1,3 +1,5 @@
+export type UserRole = 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN';
+
 export interface Business {
   id: string;
   name: string;
