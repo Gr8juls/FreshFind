@@ -49,30 +49,28 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     }
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setIsProcessing(true);
 
-    setTimeout(() => {
-      try {
-        const newOrder = checkoutOrder(paymentMethod, momoNumber);
-        setCompletedOrder(newOrder);
-        setIsProcessing(false);
+    try {
+      const newOrder = await checkoutOrder(paymentMethod, momoNumber);
+      setCompletedOrder(newOrder);
+      setIsProcessing(false);
 
-        // Fire festive confetti
-        try {
-          confetti({
-            particleCount: 80,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-        } catch (e) {
-          // fallback if canvas canvas-confetti fails
-        }
-      } catch (err: any) {
-        alert(err.message || "Payment processing failed");
-        setIsProcessing(false);
+      // Fire festive confetti
+      try {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } catch (e) {
+        // fallback if canvas-confetti fails
       }
-    }, 1500);
+    } catch (err: any) {
+      alert(err.message || "Payment processing failed");
+      setIsProcessing(false);
+    }
   };
 
   return (

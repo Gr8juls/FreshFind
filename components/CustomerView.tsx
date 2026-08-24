@@ -3,9 +3,14 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Offer } from '@/lib/mockData';
+import dynamic from 'next/dynamic';
 import { OfferCard } from './OfferCard';
 import { MarketplaceMap } from './MarketplaceMap';
-import { AIDemandForecastWidget } from './AIDemandForecastWidget';
+
+const AIDemandForecastWidget = dynamic(
+  () => import('./AIDemandForecastWidget').then((mod) => mod.AIDemandForecastWidget),
+  { ssr: false, loading: () => <div className="h-44 rounded-3xl bg-slate-900/50 border border-slate-800 animate-pulse" /> }
+);
 import { 
   MapPin, 
   SlidersHorizontal, 

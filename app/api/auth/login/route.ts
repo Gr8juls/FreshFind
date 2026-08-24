@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -25,8 +23,11 @@ export async function POST(request: Request) {
 
     const token = await signToken({ userId: user.id, role: user.role as any, email: user.email });
 
-    const response = NextResponse.json({ message: 'Login successful', user: { id: user.id, email: user.email, role: user.role } }, { status: 200 });
-    
+    const response = NextResponse.json(
+      { message: 'Login successful', user: { id: user.id, email: user.email, role: user.role } },
+      { status: 200 }
+    );
+
     response.cookies.set({
       name: 'auth_token',
       value: token,
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
     return response;

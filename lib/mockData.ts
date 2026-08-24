@@ -1,4 +1,4 @@
-export type UserRole = 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN';
+export type { UserRole } from './types'; // re-exported for backwards compat — define new code in lib/types.ts
 
 export interface Business {
   id: string;
@@ -71,7 +71,7 @@ export interface UserProfile {
   email: string;
   phone: string;
   avatarUrl: string;
-  role: 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN';
+  role: UserRole;
   walletBalance: number;
   points: number;
   badgeTier: string;
@@ -405,7 +405,7 @@ export interface PlatformUser {
   fullName: string;
   email: string;
   phone: string;
-  role: 'CUSTOMER' | 'BUSINESS_OWNER' | 'ADMIN';
+  role: UserRole;
   status: 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION';
   walletBalance: number;
   createdAt: string;

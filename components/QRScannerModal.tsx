@@ -17,11 +17,11 @@ export function QRScannerModal({ isOpen, onClose }: QRScannerModalProps) {
 
   if (!isOpen) return null;
 
-  const handleVerify = (tokenToVerify?: string) => {
+  const handleVerify = async (tokenToVerify?: string) => {
     const target = tokenToVerify || qrInput;
     if (!target.trim()) return;
     
-    const res = verifyAndCollectQR(target);
+    const res = await verifyAndCollectQR(target);
     setResult(res);
   };
 

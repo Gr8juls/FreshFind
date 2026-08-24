@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -11,12 +9,12 @@ export async function GET() {
     const token = cookieStore.get('auth_token')?.value;
 
     if (!token) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
+      return NextResponse.json({ authenticated: false }, { status: 200 });
     }
 
     const payload = await verifyToken(token);
     if (!payload) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
+      return NextResponse.json({ authenticated: false }, { status: 200 });
     }
 
     const user = await prisma.user.findUnique({
@@ -28,7 +26,7 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
+      return NextResponse.json({ authenticated: false }, { status: 200 });
     }
 
     return NextResponse.json({
@@ -46,6 +44,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Session fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ authenticated: false }, { status: 200 });
   }
 }

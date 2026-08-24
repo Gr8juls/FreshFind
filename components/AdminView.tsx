@@ -78,6 +78,23 @@ export function AdminView() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
+  // ─── Client-side role guard (defence-in-depth after all hooks) ───
+  const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-center">
+        <ShieldCheck className="w-16 h-16 text-rose-500/60" />
+        <h2 className="text-2xl font-black text-slate-100">Access Denied</h2>
+        <p className="text-sm text-slate-400 max-w-xs">
+          You do not have permission to view this page. Admin or Super-Admin role required.
+        </p>
+        <Link href="/" className="mt-2 px-5 py-2.5 bg-brand-500 text-slate-950 rounded-xl font-bold text-sm hover:bg-brand-400 transition">
+          Return to Marketplace
+        </Link>
+      </div>
+    );
+  }
+
   // Filtered lists
   const filteredBusinesses = businesses.filter(b => {
     if (storeFilter === 'PENDING') return !b.isVerified || b.status === 'PENDING_APPROVAL';
@@ -480,8 +497,11 @@ export function AdminView() {
                         className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-brand-500"
                       >
                         <option value="CUSTOMER">Customer</option>
-                        <option value="BUSINESS_OWNER">Merchant (Business Owner)</option>
-                        <option value="ADMIN">Super Administrator</option>
+                        <option value="BUSINESS_OWNER">Business Owner</option>
+                        <option value="BUSINESS_MANAGER">Business Manager</option>
+                        <option value="BUSINESS_STAFF">Business Staff</option>
+                        <option value="ADMIN">Administrator</option>
+                        <option value="SUPER_ADMIN">Super Administrator</option>
                       </select>
                     </td>
 

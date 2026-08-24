@@ -38,9 +38,10 @@ export default function LoginPage() {
       }
 
       // Redirect based on role
-      if (data.user?.role === 'BUSINESS_OWNER') {
+      const role = data.user?.role;
+      if (role === 'BUSINESS_OWNER' || role === 'BUSINESS_MANAGER' || role === 'BUSINESS_STAFF') {
         router.push('/business');
-      } else if (data.user?.role === 'ADMIN') {
+      } else if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
         router.push('/admin');
       } else {
         router.push('/');

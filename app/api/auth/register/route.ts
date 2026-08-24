@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import { REGISTERABLE_ROLES } from '@/lib/types';
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +12,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Security: only allow safe public-facing roles — prevents self-promotion to ADMIN
+    if (!REGISTERABLE_ROLES.includes(role)) {
+      return NextResponse.json(
+        { error: `Role '${role}' cannot be self-assigned. Allowed: ${REGISTERABLE_ROLES.join(', ')}` },
+        { status: 403 }
+      );
+    }
+
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -20,10 +27,9 @@ export async function POST(request: Request) {
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user in DB
+    // Create user in DB with wallet and loyalty account
     const user = await prisma.user.create({
       data: {
         email,
@@ -31,16 +37,20 @@ export async function POST(request: Request) {
         fullName,
         role,
         wallet: { create: { balance: 0, currency: 'RWF' } },
-        loyaltyAccount: { create: { points: 0, badgeTier: 'Eco Novice', mealsRescued: 0, co2SavedKg: 0 } },
+        loyaltyAccount: {
+          create: { points: 0, badgeTier: 'Eco Novice', mealsRescued: 0, co2SavedKg: 0 },
+        },
       },
     });
 
     // Generate JWT
     const token = await signToken({ userId: user.id, role: user.role as any, email: user.email });
 
-    const response = NextResponse.json({ message: 'User registered successfully', user: { id: user.id, email: user.email, role: user.role } }, { status: 201 });
-    
-    // Set HTTP-Only Cookie
+    const response = NextResponse.json(
+      { message: 'User registered successfully', user: { id: user.id, email: user.email, role: user.role } },
+      { status: 201 }
+    );
+
     response.cookies.set({
       name: 'auth_token',
       value: token,

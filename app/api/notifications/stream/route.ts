@@ -1,48 +1,77 @@
+import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   const encoder = new TextEncoder();
-
-  // Create a TransformStream to send data to the client
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
-  // Send an initial connected message
+  // Initial connection message
   writer.write(
     encoder.encode(
-      `data: ${JSON.stringify({ type: 'SYSTEM', message: 'Connected to notifications' })}\n\n`
+      `data: ${JSON.stringify({ type: 'SYSTEM', message: 'Connected to notifications stream' })}\n\n`
     )
   );
 
-  // Simulate a real-time event pushing after a few seconds
+  // Send real DB unread notifications if authenticated
+  try {
+    const cookieHeader = request.headers.get('cookie') || '';
+    const match = cookieHeader.match(/auth_token=([^;]+)/);
+    const token = match ? match[1] : null;
+
+    if (token) {
+      const payload = await verifyToken(token);
+      if (payload) {
+        const dbNotifications = await prisma.notification.findMany({
+          where: { userId: payload.userId, isRead: false },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
+        });
+
+        for (const notif of dbNotifications) {
+          writer.write(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: notif.type, message: `${notif.title}: ${notif.body}` })}\n\n`
+            )
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error('SSE notification fetch error:', err);
+  }
+
+  // Periodic event stream
   const interval = setInterval(() => {
     const mockEvents = [
-      { type: 'OFFER_ALERT', message: 'A bakery near you just listed 5 croissants!' },
-      { type: 'READY_FOR_PICKUP', message: 'Your order #FF-992 is ready for pickup.' },
-      { type: 'PROMOTION', message: 'Earn double Eco Points today!' }
+      { type: 'OFFER_ALERT', message: 'Kigali Artisan Bakery listed 4 fresh croissant boxes!' },
+      { type: 'READY_FOR_PICKUP', message: 'Your order #FF-901 is ready for collection.' },
+      { type: 'PROMOTION', message: 'Double Eco-Points active today across all partner cafes!' },
     ];
     const randomEvent = mockEvents[Math.floor(Math.random() * mockEvents.length)];
 
-    writer.write(
-      encoder.encode(
-        `data: ${JSON.stringify(randomEvent)}\n\n`
-      )
-    ).catch(() => {
-      clearInterval(interval);
-    });
-  }, 15000); // Send a random notification every 15 seconds
+    writer
+      .write(encoder.encode(`data: ${JSON.stringify(randomEvent)}\n\n`))
+      .catch(() => {
+        clearInterval(interval);
+      });
+  }, 20000);
 
-  // Handle client disconnect
+  // Clean up on disconnect
   request.signal.addEventListener('abort', () => {
     clearInterval(interval);
-    writer.close();
+    try {
+      writer.close();
+    } catch {}
   });
 
   return new Response(stream.readable, {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      'Connection': 'keep-alive',
+      Connection: 'keep-alive',
     },
   });
 }
