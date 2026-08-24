@@ -2,25 +2,25 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Offer } from '@/lib/mockData';
 import { 
-  Store, 
   Plus, 
-  Sparkles, 
-  QrCode, 
-  TrendingUp, 
+  Store, 
+  CheckCircle, 
   Clock, 
+  QrCode, 
+  Sparkles, 
   DollarSign, 
-  Leaf, 
-  Users, 
-  CheckCircle2, 
-  Trash2,
+  TrendingUp, 
+  Sliders, 
+  ArrowUpRight,
+  AlertCircle,
   Edit3,
   Calendar,
-  KeyRound,
-  ShieldCheck,
-  Zap,
-  Repeat
+  Layers,
+  ChevronUp,
+  ChevronDown,
+  Repeat,
+  XCircle
 } from 'lucide-react';
 
 interface BusinessViewProps {
@@ -28,28 +28,20 @@ interface BusinessViewProps {
 }
 
 export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
-  const { offers, businesses, createMerchantOffer } = useApp();
-  const merchantBusiness = businesses[0]; // "Kigali Artisan Bakery"
-  const merchantOffers = offers.filter(o => o.businessId === merchantBusiness.id);
+  const { offers, businesses, createMerchantOffer, quickAdjustOfferStock, cancelOfferAndRefund } = useApp();
+  const merchantBusiness = businesses[0]; // Active bakery merchant
 
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showAutoScheduleModal, setShowAutoScheduleModal] = useState(false);
-  const [autoScheduleActive, setAutoScheduleActive] = useState(true);
-  
-  // Cashier PIN state
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [cashierPin, setCashierPin] = useState('');
-  const [pinSuccess, setPinSuccess] = useState(false);
-
-  // Create Offer Form State
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState('Surprise Artisan Pastry Box');
+  const [bagType, setBagType] = useState<'Surprise Pastry Bag' | 'Surprise Meal Box' | 'Surprise Groceries Box' | 'Buffet Feast Box'>('Surprise Pastry Bag');
+  const [description, setDescription] = useState('Assorted fresh daily croissants, sourdough baguettes, and tarts.');
   const [category, setCategory] = useState('Bakery');
   const [originalPrice, setOriginalPrice] = useState(15000);
   const [discountedPrice, setDiscountedPrice] = useState(4500);
   const [quantity, setQuantity] = useState(5);
   const [pickupStart, setPickupStart] = useState('18:00');
   const [pickupEnd, setPickupEnd] = useState('19:30');
+  const [pickupTiming, setPickupTiming] = useState<'TODAY' | 'TOMORROW'>('TODAY');
   const [isVegetarian, setIsVegetarian] = useState(true);
   const [isVegan, setIsVegan] = useState(false);
   const [isHalal, setIsHalal] = useState(true);
@@ -59,14 +51,16 @@ export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
   const calculatedDiscount = Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
   const aiSuggestedPrice = Math.round(originalPrice * 0.3);
 
-  const handleCreateOffer = (e: React.FormEvent) => {
+  const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) return;
 
-    createMerchantOffer({
+    await createMerchantOffer({
       businessId: merchantBusiness.id,
       businessName: merchantBusiness.name,
       title,
+      bagType,
+      guaranteedValue: originalPrice,
       description,
       category,
       originalPrice,
@@ -76,6 +70,7 @@ export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
       quantityAvailable: quantity,
       pickupStart,
       pickupEnd,
+      pickupTiming,
       imageUrl: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=800',
       distanceKm: merchantBusiness.distanceKm,
       isVegetarian,
@@ -85,123 +80,120 @@ export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
     });
 
     setShowCreateModal(false);
-    setTitle('');
-    setDescription('');
   };
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (cashierPin.length === 4) {
-      setPinSuccess(true);
-      setTimeout(() => {
-        setPinSuccess(false);
-        setShowPinModal(false);
-        setCashierPin('');
-        onOpenQRScanner();
-      }, 800);
-    }
-  };
+  const merchantOffers = offers.filter(o => o.businessId === merchantBusiness.id);
 
   return (
     <div className="space-y-8 pb-16 font-sans">
       
-      {/* Merchant Header */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-gradient-to-r from-slate-950 via-slate-900 to-emerald-950/30">
+      {/* Merchant Header Bar */}
+      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center space-x-4">
-          <img
-            src={merchantBusiness.logoUrl}
-            alt={merchantBusiness.name}
-            className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-500/40 shadow-lg"
-          />
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 p-0.5 shadow-xl">
+            <img src={merchantBusiness.logoUrl} alt={merchantBusiness.name} className="w-full h-full rounded-2xl object-cover" />
+          </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h1 className="text-2xl font-black text-slate-100">{merchantBusiness.name}</h1>
-              <span className="bg-brand-500/20 text-brand-400 border border-brand-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                Verified Food Partner
-              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-100">{merchantBusiness.name}</h2>
+              {merchantBusiness.isVerified && (
+                <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-500/30 flex items-center space-x-1">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>Verified Merchant</span>
+                </span>
+              )}
             </div>
-            <p className="text-xs text-slate-400 mt-1">{merchantBusiness.address} • {merchantBusiness.phone}</p>
+            <p className="text-xs text-slate-400 mt-1">{merchantBusiness.address}, {merchantBusiness.district} • Daily surplus hours: {merchantBusiness.openingHours}</p>
           </div>
         </div>
 
-        {/* Quick Merchant Controls */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          
-          {/* Quick Cashier PIN Login */}
+        <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setShowPinModal(true)}
-            className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-indigo-500/30 px-3.5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
+            onClick={onOpenQRScanner}
+            className="flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
           >
-            <KeyRound className="w-4 h-4 text-indigo-400" />
-            <span>Counter PIN Scanner</span>
-          </button>
-
-          {/* Recurring Auto Scheduler */}
-          <button
-            onClick={() => setShowAutoScheduleModal(true)}
-            className="flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/30 px-3.5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
-          >
-            <Repeat className="w-4 h-4 text-amber-400" />
-            <span>Daily Auto-Schedule</span>
+            <QrCode className="w-4 h-4 text-emerald-400" />
+            <span>Open QR Scanner</span>
           </button>
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 px-5 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-brand-500/20 transition cursor-pointer"
+            className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 px-5 py-2.5 rounded-xl font-black text-xs shadow-lg shadow-emerald-500/20 transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Post Surplus Offer</span>
+            <span>Post Surprise Bag</span>
           </button>
         </div>
+      </div>
+
+      {/* TGTG Recurring Schedule Card */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 bg-emerald-500/20 rounded-xl text-emerald-400">
+            <Repeat className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-black text-slate-100">Set-and-Forget Daily Schedule Active</span>
+              <span className="bg-emerald-500 text-slate-950 text-[9px] font-black px-1.5 py-0.5 rounded">AUTO-DROP</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              Auto-publishing 4 Surprise Pastry Bags Mon–Sat at 16:00 (Pickup 18:00–19:30).
+            </p>
+          </div>
+        </div>
+        <span className="text-xs font-bold text-emerald-400 bg-emerald-950 px-3 py-1.5 rounded-xl border border-emerald-800">
+          Next Auto-Drop: Tomorrow 16:00
+        </span>
       </div>
 
       {/* Merchant Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
-          <span className="text-xs text-slate-400 font-medium">Total Surplus Revenue</span>
-          <p className="text-2xl font-black text-brand-400">485,000 RWF</p>
+          <span className="text-xs text-slate-400 font-medium">Surprise Bag Revenue</span>
+          <p className="text-2xl font-black text-emerald-400">485,000 RWF</p>
           <span className="text-[10px] text-emerald-400 font-semibold">+18% vs last month</span>
         </div>
 
         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
-          <span className="text-xs text-slate-400 font-medium">Active Surplus Packages</span>
-          <p className="text-2xl font-black text-amber-400">{merchantOffers.length} Live</p>
+          <span className="text-xs text-slate-400 font-medium">Active Mystery Packages</span>
+          <p className="text-2xl font-black text-teal-400">{merchantOffers.length} Live</p>
           <span className="text-[10px] text-slate-400">Synced to Kigali Marketplace</span>
         </div>
 
         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
           <span className="text-xs text-slate-400 font-medium">Food Rescued Locally</span>
           <p className="text-2xl font-black text-emerald-400">142 kg</p>
-          <span className="text-[10px] text-slate-400">355 kg CO₂ prevented</span>
+          <span className="text-[10px] text-slate-400">355 kg CO₂ avoided</span>
         </div>
 
         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
-          <span className="text-xs text-slate-400 font-medium">Customer Freshness Rating</span>
+          <span className="text-xs text-slate-400 font-medium">Customer Rating</span>
           <p className="text-2xl font-black text-slate-100">4.9 ★</p>
           <span className="text-[10px] text-slate-400">128 verified ratings</span>
         </div>
       </div>
 
-      {/* Inventory & Offer Management Table */}
+      {/* Inventory & Offer Management Table with 1-Tap Quick Stepper */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-bold text-slate-100">Active Inventory & Mystery Packages</h3>
-            <p className="text-xs text-slate-400">Manage published food offers, adjust inventory, and verify AI demand scores.</p>
+            <h3 className="text-lg font-bold text-slate-100">Today&apos;s Surplus Bags & Fast Stepper</h3>
+            <p className="text-xs text-slate-400">Use the 1-click + / - steppers to adjust today&apos;s bag count in 2 seconds.</p>
           </div>
-          <span className="text-xs font-mono text-brand-400 font-bold">{merchantOffers.length} active listings</span>
+          <span className="text-xs font-mono text-emerald-400 font-bold">{merchantOffers.length} active listings</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-950 text-slate-400 font-semibold uppercase tracking-wider">
               <tr>
-                <th className="p-3.5 rounded-l-xl">Package Details</th>
-                <th className="p-3.5">Retail vs Discount Price</th>
-                <th className="p-3.5">Stock Available</th>
+                <th className="p-3.5 rounded-l-xl">Surprise Box Type</th>
+                <th className="p-3.5">Price & Value</th>
+                <th className="p-3.5">Quick Stock Adjust</th>
                 <th className="p-3.5">Pickup Schedule</th>
                 <th className="p-3.5">AI Demand Score</th>
-                <th className="p-3.5 rounded-r-xl text-right">Actions</th>
+                <th className="p-3.5 rounded-r-xl text-right">Emergency Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
@@ -211,27 +203,59 @@ export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
                     <img src={offer.imageUrl} alt={offer.title} className="w-10 h-10 rounded-xl object-cover border border-slate-700" />
                     <div>
                       <p className="font-bold text-slate-100">{offer.title}</p>
-                      <p className="text-[10px] text-slate-400">{offer.category}</p>
+                      <p className="text-[10px] text-emerald-400 font-semibold">{offer.bagType || offer.category}</p>
                     </div>
                   </td>
                   <td className="p-3.5">
-                    <span className="font-bold text-brand-400">{offer.discountedPrice.toLocaleString()} RWF</span>
+                    <span className="font-bold text-emerald-400">{offer.discountedPrice.toLocaleString()} RWF</span>
                     <span className="text-[10px] text-slate-500 line-through ml-1.5">{offer.originalPrice.toLocaleString()}</span>
                   </td>
-                  <td className="p-3.5 font-bold text-slate-200">
-                    {offer.quantityAvailable} / {offer.quantityTotal} left
+                  
+                  {/* 1-Tap Quick Stepper */}
+                  <td className="p-3.5">
+                    <div className="inline-flex items-center space-x-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                      <button
+                        onClick={() => quickAdjustOfferStock(offer.id, -1)}
+                        className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold flex items-center justify-center transition cursor-pointer"
+                        title="Decrease 1 bag"
+                      >
+                        -
+                      </button>
+                      <span className="font-mono font-black text-emerald-400 px-2 text-sm">
+                        {offer.quantityAvailable}
+                      </span>
+                      <button
+                        onClick={() => quickAdjustOfferStock(offer.id, 1)}
+                        className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold flex items-center justify-center transition cursor-pointer"
+                        title="Increase 1 bag"
+                      >
+                        +
+                      </button>
+                    </div>
                   </td>
+
                   <td className="p-3.5 text-slate-300 font-medium">
-                    {offer.pickupStart} - {offer.pickupEnd}
+                    {offer.pickupTiming === 'TOMORROW' ? 'Tomorrow' : 'Today'} {offer.pickupStart} - {offer.pickupEnd}
                   </td>
                   <td className="p-3.5">
                     <span className="bg-amber-950/80 text-amber-400 font-bold px-2 py-0.5 rounded-md text-[10px]">
                       ⚡ {offer.aiDemandScore}% High Demand
                     </span>
                   </td>
-                  <td className="p-3.5 text-right space-x-2">
-                    <button className="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white cursor-pointer">
-                      <Edit3 className="w-3.5 h-3.5" />
+
+                  {/* Emergency Cancel Action */}
+                  <td className="p-3.5 text-right">
+                    <button
+                      onClick={() => {
+                        if (confirm(`Cancel today's drop for "${offer.title}"? Uncollected orders will be auto-refunded.`)) {
+                          cancelOfferAndRefund(offer.id);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-bold transition cursor-pointer flex items-center space-x-1 ml-auto"
+                      title="Cancel today's drop and refund"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Cancel Drop</span>
                     </button>
                   </td>
                 </tr>
@@ -241,14 +265,14 @@ export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
         </div>
       </div>
 
-      {/* CREATE OFFER MODAL WITH AI ASSIST */}
+      {/* CREATE OFFER MODAL WITH AI ASSIST & TGTG BAG TYPES */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-6 my-8">
+          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 space-y-5 my-8">
             
-            <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <Plus className="w-5 h-5 text-brand-400" />
+                <Plus className="w-5 h-5 text-emerald-400" />
                 <h3 className="text-lg font-bold text-slate-100">Post New Chef&apos;s Surprise Bag</h3>
               </div>
               <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
@@ -258,198 +282,123 @@ export function BusinessView({ onOpenQRScanner }: BusinessViewProps) {
 
             <form onSubmit={handleCreateOffer} className="space-y-4 text-xs">
               
+              {/* Bag Type Selector */}
               <div>
-                <label className="font-semibold text-slate-300 block mb-1">Package Title</label>
+                <label className="block text-slate-300 font-bold mb-1.5">Surprise Bag Category</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['Surprise Pastry Bag', 'Surprise Meal Box', 'Surprise Groceries Box', 'Buffet Feast Box'] as const).map(type => (
+                    <button
+                      type="button"
+                      key={type}
+                      onClick={() => {
+                        setBagType(type);
+                        setTitle(type === 'Surprise Pastry Bag' ? 'Surprise Artisan Pastry Box' : type === 'Surprise Meal Box' ? 'Chef Mystery Dinner Box' : type === 'Surprise Groceries Box' ? 'Fresh Deli & Grocery Box' : 'Executive Buffet Feast Box');
+                      }}
+                      className={`p-2.5 rounded-xl border text-left font-bold transition cursor-pointer ${
+                        bagType === type ? 'bg-emerald-950 border-emerald-500 text-emerald-400' : 'bg-slate-950 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Package Title</label>
                 <input
                   type="text"
-                  required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Chef's Evening Surprise Pastry Box"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-300 block mb-1">Description (Contents Hint)</label>
-                <textarea
-                  rows={2}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
                   required
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Freshly baked sourdough, croissants, and tarts prepared today..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500"
                 />
               </div>
 
-              {/* Pricing & AI Assist */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between text-brand-400 font-bold">
-                  <span className="flex items-center space-x-1">
-                    <Sparkles className="w-4 h-4" />
-                    <span>AI Dynamic Price Advisor</span>
-                  </span>
-                  <span className="text-[10px] text-amber-400">-{calculatedDiscount}% Discount</span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-slate-400 block mb-1">Original Retail Value (RWF)</label>
-                    <input
-                      type="number"
-                      value={originalPrice}
-                      onChange={(e) => setOriginalPrice(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-slate-100 focus:outline-none focus:border-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-slate-400 block mb-1">Discounted Rescue Price</label>
-                    <input
-                      type="number"
-                      value={discountedPrice}
-                      onChange={(e) => setDiscountedPrice(Number(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-brand-400 font-bold focus:outline-none focus:border-brand-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-400 flex items-center justify-between bg-slate-900 p-2 rounded-xl">
-                  <span>AI Recommended Markdown:</span>
-                  <button
-                    type="button"
-                    onClick={() => setDiscountedPrice(aiSuggestedPrice)}
-                    className="font-bold text-brand-400 underline cursor-pointer"
-                  >
-                    Apply {aiSuggestedPrice.toLocaleString()} RWF (70% Off)
-                  </button>
-                </div>
-              </div>
-
-              {/* Stock Quantity & Schedule */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Quantity</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Original Value (RWF)</label>
                   <input
                     type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500"
+                    value={originalPrice}
+                    onChange={(e) => setOriginalPrice(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Pickup Start</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Rescue Price (RWF)</label>
+                  <input
+                    type="number"
+                    value={discountedPrice}
+                    onChange={(e) => setDiscountedPrice(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-emerald-400 font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* AI Guidance Pill */}
+              <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-[11px] text-slate-300 flex items-center justify-between">
+                <span>💡 Recommended Rescue Price (~70% off):</span>
+                <span className="font-bold text-emerald-400">{aiSuggestedPrice.toLocaleString()} RWF</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Surprise Bags</label>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Pickup Start</label>
                   <input
                     type="text"
                     value={pickupStart}
                     onChange={(e) => setPickupStart(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500"
+                    placeholder="18:00"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 font-semibold block mb-1">Pickup End</label>
+                  <label className="block text-slate-300 font-semibold mb-1">Pickup End</label>
                   <input
                     type="text"
                     value={pickupEnd}
                     onChange={(e) => setPickupEnd(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-brand-500"
+                    placeholder="19:30"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200"
+                    required
                   />
                 </div>
               </div>
 
-              {/* Submit Action */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Surprise Box Description</label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 py-3 rounded-2xl font-black text-sm shadow-xl shadow-brand-500/20 transition cursor-pointer"
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 py-3 rounded-xl font-bold text-xs shadow-lg shadow-emerald-500/20 transition cursor-pointer"
               >
-                Publish Surplus Offer Immediately
+                Publish Surprise Box Deal
               </button>
 
             </form>
 
-          </div>
-        </div>
-      )}
-
-      {/* DAILY AUTO-SCHEDULE MODAL */}
-      {showAutoScheduleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center">
-              <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
-                <Repeat className="w-5 h-5 text-amber-400" />
-                <span>Daily Recurring Surplus Schedule</span>
-              </h3>
-              <button onClick={() => setShowAutoScheduleModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Eliminate daily manual listing! FreshFind will automatically publish <strong className="text-slate-200">5 Surprise Bakery Boxes</strong> every weekday at 18:00 unless paused.
-            </p>
-
-            <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-200">Recurring Status</span>
-              <button
-                onClick={() => setAutoScheduleActive(!autoScheduleActive)}
-                className={`px-3 py-1 rounded-xl font-bold transition cursor-pointer ${
-                  autoScheduleActive ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {autoScheduleActive ? 'Enabled (Daily 18:00)' : 'Disabled'}
-              </button>
-            </div>
-
-            <button
-              onClick={() => setShowAutoScheduleModal(false)}
-              className="w-full bg-brand-500 text-slate-950 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
-            >
-              Save Schedule Preferences
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* CASHIER COUNTER PIN MODAL */}
-      {showPinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xs w-full space-y-4 shadow-2xl text-center">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center mx-auto">
-              <KeyRound className="w-6 h-6" />
-            </div>
-
-            <div>
-              <h3 className="text-base font-bold text-slate-100">Counter Staff Quick Login</h3>
-              <p className="text-xs text-slate-400 mt-1">Enter 4-digit staff PIN to unlock customer QR scanner.</p>
-            </div>
-
-            <form onSubmit={handlePinSubmit} className="space-y-4">
-              <input
-                type="password"
-                maxLength={4}
-                autoFocus
-                value={cashierPin}
-                onChange={(e) => setCashierPin(e.target.value)}
-                placeholder="••••"
-                className="w-full bg-slate-950 border border-slate-700 rounded-2xl py-3 text-center text-2xl font-mono tracking-widest text-brand-400 focus:outline-none focus:border-brand-500"
-              />
-
-              {pinSuccess ? (
-                <div className="text-xs font-bold text-emerald-400 flex items-center justify-center space-x-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>PIN Verified! Launching Scanner...</span>
-                </div>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={cashierPin.length < 4}
-                  className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-slate-950 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
-                >
-                  Unlock QR Scanner
-                </button>
-              )}
-            </form>
           </div>
         </div>
       )}

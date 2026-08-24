@@ -87,6 +87,8 @@ interface AppContextType {
   toggleFavorite: (businessId: string) => Promise<void>;
   verifyAndCollectQR: (qrToken: string) => Promise<{ success: boolean; message: string; order?: Order }>;
   createMerchantOffer: (newOffer: Omit<Offer, 'id' | 'businessLogo' | 'rating' | 'aiDemandScore' | 'aiPriceSuggestion'>) => Promise<void>;
+  quickAdjustOfferStock: (offerId: string, delta: number) => void;
+  cancelOfferAndRefund: (offerId: string) => Promise<void>;
   addWalletBalance: (amount: number) => Promise<void>;
 
   // Admin Super-Rights Actions
@@ -412,6 +414,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const quickAdjustOfferStock = (offerId: string, delta: number) => {
+    setOffers(prev => prev.map(o => {
+      if (o.id === offerId) {
+        const newQty = Math.max(0, o.quantityAvailable + delta);
+        return { ...o, quantityAvailable: newQty };
+      }
+      return o;
+    }));
+  };
+
+  const cancelOfferAndRefund = async (offerId: string) => {
+    const target = offers.find(o => o.id === offerId);
+    setOffers(prev => prev.filter(o => o.id !== offerId));
+    addAuditLog('MERCHANT_EMERGENCY_DROP_CANCELLED', target?.title || offerId, 'MODERATION', 'WARNING');
+  };
+
   const addWalletBalance = async (amount: number) => {
     setUser(prev => ({ ...prev, walletBalance: prev.walletBalance + amount }));
 
@@ -641,7 +659,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       filterDietary, setFilterDietary,
       maxDistanceKm, setMaxDistanceKm,
       cartOffer, cartQuantity, setCartQuantity, addToCart, clearCart, checkoutOrder,
-      toggleFavorite, verifyAndCollectQR, createMerchantOffer, addWalletBalance,
+      toggleFavorite, verifyAndCollectQR, createMerchantOffer, quickAdjustOfferStock, cancelOfferAndRefund, addWalletBalance,
       approveBusiness, suspendBusiness, reactivateBusiness, updateBusinessCommission,
       updateUserRole, updateUserStatus, creditUserWallet, resolveDispute,
       deleteOfferByAdmin, processMerchantPayout, updateSystemSettings, addAuditLog

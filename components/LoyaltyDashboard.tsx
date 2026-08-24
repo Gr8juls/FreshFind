@@ -1,93 +1,125 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Leaf, Award, Utensils, Droplets } from 'lucide-react';
-
-interface LoyaltyData {
-  points: number;
-  badgeTier: string;
-  mealsRescued: number;
-  co2SavedKg: number;
-}
+import React, { useState } from 'react';
+import { Leaf, Award, Utensils, Sparkles, Trees, Smartphone, ChevronRight } from 'lucide-react';
+import { useApp } from '@/lib/store';
+import { EcoImpactModal } from './EcoImpactModal';
 
 export default function LoyaltyDashboard() {
-  const [data, setData] = useState<LoyaltyData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user } = useApp();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/loyalty')
-      .then((res) => res.json())
-      .then((resData) => {
-        if (resData && typeof resData.points === 'number') {
-          setData(resData);
-        } else {
-          setData({ points: 480, badgeTier: 'Eco Champion 🌿', mealsRescued: 18, co2SavedKg: 45.2 });
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setData({ points: 480, badgeTier: 'Eco Champion 🌿', mealsRescued: 18, co2SavedKg: 45.2 });
-        setLoading(false);
-      });
-  }, []);
+  const meals = user.mealsRescued ?? 18;
+  const co2 = user.co2SavedKg ?? 45.2;
+  const points = user.points ?? 480;
+  const badgeTier = user.badgeTier || 'Waste Warrior 🌿';
 
-  if (loading) {
-    return (
-      <div className="w-full max-w-md mx-auto p-6 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 animate-pulse">
-        <div className="h-6 bg-white/20 rounded w-1/3 mb-4"></div>
-        <div className="h-20 bg-white/20 rounded-xl mb-4"></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-16 bg-white/20 rounded-xl"></div>
-          <div className="h-16 bg-white/20 rounded-xl"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
+  const treeDays = Math.round(co2 * 16.5);
+  const phoneCharges = Math.round(co2 * 122);
 
   return (
-    <div className="w-full max-w-md mx-auto p-6 rounded-3xl bg-gradient-to-br from-green-900/40 to-emerald-900/40 backdrop-blur-xl border border-white/10 shadow-2xl text-white">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-300 to-emerald-100">
-          Your Impact
-        </h2>
-        <div className="flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full border border-white/20">
-          <Award className="w-4 h-4 text-yellow-400" />
-          <span className="text-sm font-semibold">{data.badgeTier}</span>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <div className="flex justify-between text-sm mb-2 opacity-80">
-          <span>Current Points</span>
-          <span className="font-bold">{data.points} / 1000 to Next Tier</span>
-        </div>
-        <div className="h-3 w-full bg-black/30 rounded-full overflow-hidden border border-white/5">
-          <div 
-            className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full"
-            style={{ width: `${Math.min((data.points / 1000) * 100, 100)}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center transition-transform hover:scale-105">
-          <div className="p-2 bg-emerald-500/20 rounded-full mb-2">
-            <Utensils className="w-6 h-6 text-emerald-400" />
-          </div>
-          <span className="text-2xl font-bold">{data.mealsRescued}</span>
-          <span className="text-xs opacity-70 uppercase tracking-wider mt-1">Meals Rescued</span>
-        </div>
+    <>
+      <div className="w-full max-w-4xl mx-auto p-6 sm:p-7 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/60 border border-slate-800 shadow-2xl text-white">
         
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center text-center transition-transform hover:scale-105">
-          <div className="p-2 bg-blue-500/20 rounded-full mb-2">
-            <Leaf className="w-6 h-6 text-blue-400" />
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+          <div>
+            <div className="flex items-center space-x-2 text-brand-400 mb-1">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-widest">Live Eco Footprint</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-brand-300">
+              Community Food Rescue Impact
+            </h2>
           </div>
-          <span className="text-2xl font-bold">{data.co2SavedKg} kg</span>
-          <span className="text-xs opacity-70 uppercase tracking-wider mt-1">CO₂ Saved</span>
+
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 px-3.5 py-1.5 bg-brand-500/10 rounded-full border border-brand-500/30">
+              <Award className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-brand-300">{badgeTier}</span>
+            </div>
+
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="flex items-center space-x-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-full text-xs font-bold transition border border-slate-700 cursor-pointer"
+            >
+              <span>View Equivalence Card</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Progress Bar to next tier */}
+        <div className="mb-6 bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-slate-400">Eco-Hero Progress</span>
+            <span className="font-bold text-brand-400">{points} / 1000 Points to Next Tier</span>
+          </div>
+          <div className="h-2.5 w-full bg-slate-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min((points / 1000) * 100, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* 4 Impact Metric Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          
+          <div 
+            onClick={() => setIsModalOpen(true)}
+            className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-brand-500/40 flex flex-col items-center justify-center text-center transition cursor-pointer group"
+          >
+            <div className="p-2 bg-emerald-500/10 rounded-xl mb-2 group-hover:scale-110 transition-transform">
+              <Utensils className="w-5 h-5 text-emerald-400" />
+            </div>
+            <span className="text-2xl font-black text-white">{meals}</span>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-1">Meals Rescued</span>
+          </div>
+          
+          <div 
+            onClick={() => setIsModalOpen(true)}
+            className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-brand-500/40 flex flex-col items-center justify-center text-center transition cursor-pointer group"
+          >
+            <div className="p-2 bg-teal-500/10 rounded-xl mb-2 group-hover:scale-110 transition-transform">
+              <Leaf className="w-5 h-5 text-teal-400" />
+            </div>
+            <span className="text-2xl font-black text-teal-300">{co2} kg</span>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-1">CO₂e Avoided</span>
+          </div>
+
+          <div 
+            onClick={() => setIsModalOpen(true)}
+            className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-brand-500/40 flex flex-col items-center justify-center text-center transition cursor-pointer group"
+          >
+            <div className="p-2 bg-emerald-500/10 rounded-xl mb-2 group-hover:scale-110 transition-transform">
+              <Trees className="w-5 h-5 text-emerald-400" />
+            </div>
+            <span className="text-2xl font-black text-white">{treeDays}</span>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-1">Tree-Days Eq.</span>
+          </div>
+
+          <div 
+            onClick={() => setIsModalOpen(true)}
+            className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-brand-500/40 flex flex-col items-center justify-center text-center transition cursor-pointer group"
+          >
+            <div className="p-2 bg-blue-500/10 rounded-xl mb-2 group-hover:scale-110 transition-transform">
+              <Smartphone className="w-5 h-5 text-blue-400" />
+            </div>
+            <span className="text-2xl font-black text-blue-300">{phoneCharges.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-1">Phone Charges</span>
+          </div>
+
         </div>
       </div>
-    </div>
+
+      <EcoImpactModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        mealsRescued={meals}
+        co2SavedKg={co2}
+        userName={user.fullName || 'Food Rescue Hero'}
+      />
+    </>
   );
 }

@@ -16,7 +16,8 @@ import {
   Minus, 
   Plus, 
   Leaf,
-  Timer
+  Timer,
+  Bike
 } from 'lucide-react';
 
 interface OfferDetailModalProps {
@@ -46,6 +47,8 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
     ((offer.originalPrice - offer.discountedPrice) / offer.originalPrice) * 100
   );
 
+  const valueMultiplier = (offer.originalPrice / offer.discountedPrice).toFixed(1);
+
   const handleReserve = () => {
     addToCart(offer);
     onProceedToCheckout();
@@ -58,7 +61,7 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700/80 transition"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full bg-slate-900/80 text-slate-400 hover:text-white border border-slate-700/80 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -73,15 +76,15 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-black/30" />
           
           {/* Reservation Countdown Alert Bar */}
-          <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-brand-500/30 rounded-2xl p-3 flex items-center justify-between shadow-xl">
-            <div className="flex items-center space-x-2 text-brand-400 font-medium text-xs">
-              <Timer className="w-4 h-4 animate-spin text-brand-400" />
-              <span>Reservation Lock Active:</span>
+          <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-3 flex items-center justify-between shadow-xl">
+            <div className="flex items-center space-x-2 text-emerald-400 font-medium text-xs">
+              <Timer className="w-4 h-4 text-emerald-400 animate-spin" />
+              <span>Surprise Bag Hold Active:</span>
               <span className="font-mono font-bold text-slate-100 text-sm">
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </span>
             </div>
-            <span className="text-[11px] text-slate-400">Guaranteed item hold</span>
+            <span className="text-[11px] text-slate-400">Guaranteed item lock</span>
           </div>
         </div>
 
@@ -109,21 +112,30 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
               </div>
             </div>
 
-            <h2 className="text-2xl font-black text-slate-100 mt-1">{offer.title}</h2>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <h2 className="text-2xl font-black text-slate-100">{offer.title}</h2>
+              {offer.bagType && (
+                <span className="text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                  {offer.bagType}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-slate-300 leading-relaxed mt-2">{offer.description}</p>
           </div>
 
-          {/* AI Demand & Pricing Insights */}
-          <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-2">
+          {/* TGTG Guaranteed Value & Pricing Insights */}
+          <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-2">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-200">
-              <span className="flex items-center space-x-1.5 text-brand-400">
-                <Sparkles className="w-4 h-4 text-brand-400" />
-                <span>FreshFind AI Intelligence Index</span>
+              <span className="flex items-center space-x-1.5 text-emerald-400">
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>Guaranteed Value Promise ({valueMultiplier}x Value)</span>
               </span>
-              <span className="text-amber-400">{offer.aiDemandScore}% High Demand Score</span>
+              <span className="text-emerald-400 font-bold bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
+                Min. {offer.originalPrice.toLocaleString()} RWF Value
+              </span>
             </div>
-            <p className="text-xs text-slate-400">
-              This surplus offer is discounted by <strong className="text-brand-400">{discountPercent}%</strong> from its retail value. By rescuing this bag, you prevent ~<strong className="text-slate-200">2.5 kg of CO₂</strong> emissions!
+            <p className="text-xs text-slate-300">
+              You pay only <strong className="text-emerald-400">{offer.discountedPrice.toLocaleString()} RWF</strong> ({discountPercent}% discount). By rescuing this package, you avoid ~<strong className="text-slate-100">2.5 kg of CO₂</strong> emissions!
             </p>
           </div>
 
@@ -132,18 +144,18 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
             <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
               <div className="flex items-center space-x-2 text-xs text-amber-400 font-semibold">
                 <Clock className="w-4 h-4" />
-                <span>Pickup Time Today</span>
+                <span>Pickup Time ({offer.pickupTiming === 'TOMORROW' ? 'Tomorrow' : 'Today'})</span>
               </div>
               <p className="text-base font-bold text-slate-100">
                 {offer.pickupStart} - {offer.pickupEnd}
               </p>
-              <p className="text-[11px] text-slate-400">Arrive at store before window closes.</p>
+              <p className="text-[11px] text-slate-400">Arrive at store before the window closes.</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-              <div className="flex items-center space-x-2 text-xs text-brand-400 font-semibold">
+              <div className="flex items-center space-x-2 text-xs text-emerald-400 font-semibold">
                 <MapPin className="w-4 h-4" />
-                <span>Store Location</span>
+                <span>Store Location & Contact</span>
               </div>
               <p className="text-sm font-bold text-slate-100 truncate">{business?.address}</p>
               <p className="text-[11px] text-slate-400">{business?.phone}</p>
@@ -156,14 +168,14 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
               <span className="text-xs font-semibold text-slate-400">Qty:</span>
               <button
                 onClick={() => setCartQuantity(Math.max(1, cartQuantity - 1))}
-                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700"
+                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
               <span className="text-sm font-bold text-slate-100 w-4 text-center">{cartQuantity}</span>
               <button
                 onClick={() => setCartQuantity(Math.min(offer.quantityAvailable, cartQuantity + 1))}
-                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700"
+                className="p-1 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
               </button>
@@ -173,7 +185,7 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
               <div className="text-xs text-slate-400 line-through">
                 {(offer.originalPrice * cartQuantity).toLocaleString()} RWF
               </div>
-              <div className="text-xl font-black text-brand-400">
+              <div className="text-xl font-black text-emerald-400">
                 {(offer.discountedPrice * cartQuantity).toLocaleString()} RWF
               </div>
             </div>
@@ -184,16 +196,16 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
         {/* Footer Action */}
         <div className="p-6 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
           <div className="flex items-center space-x-2 text-xs text-slate-400">
-            <ShieldCheck className="w-4 h-4 text-brand-400" />
-            <span>100% Money-Back Guarantee if food is unavailable</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>100% Automatic Refund Guarantee</span>
           </div>
 
           <button
             onClick={handleReserve}
-            className="flex items-center space-x-2 bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-brand-500/20 transition transform active:scale-95"
+            className="flex items-center space-x-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 px-6 py-3 rounded-2xl font-black text-sm shadow-xl shadow-emerald-500/20 transition transform active:scale-95 cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Checkout Now</span>
+            <span>Reserve & Checkout</span>
           </button>
         </div>
 

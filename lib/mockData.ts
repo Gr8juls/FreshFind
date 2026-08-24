@@ -32,13 +32,17 @@ export interface Offer {
   title: string;
   description: string;
   category: string;
+  bagType?: 'Surprise Pastry Bag' | 'Surprise Groceries Box' | 'Buffet Feast Box' | 'Vegan Surplus Bowl' | 'General Magic Bag';
+  guaranteedValue?: number;
   originalPrice: number;
   discountedPrice: number;
   currency: string;
   quantityTotal: number;
   quantityAvailable: number;
-  pickupStart: string; // e.g. "17:30"
-  pickupEnd: string;   // e.g. "19:00"
+  pickupStart: string; // e.g. "18:00"
+  pickupEnd: string;   // e.g. "19:30"
+  pickupTiming?: 'TODAY' | 'TOMORROW';
+  nextDropTime?: string; // e.g. "Tomorrow 16:30"
   imageUrl: string;
   distanceKm: number;
   rating: number;
@@ -63,6 +67,10 @@ export interface Order {
   createdAt: string;
   pickupWindow: string;
   paymentMethod: 'STRIPE_CARD' | 'MTN_MOMO' | 'AIRTEL_MONEY' | 'WALLET';
+  collectionType?: 'SELF_PICKUP' | 'MOTARI_COURIER';
+  courierPin?: string;
+  co2SavedKg?: number;
+  mealsRescued?: number;
 }
 
 export interface UserProfile {
@@ -250,7 +258,9 @@ export const INITIAL_OFFERS: Offer[] = [
     businessName: 'Kigali Artisan Bakery',
     businessLogo: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Surprise Artisan Pastry Box',
-    description: 'Assorted fresh pastries including almond croissants, pain au chocolat, fruit tarts, and whole grain baguettes.',
+    bagType: 'Surprise Pastry Bag',
+    guaranteedValue: 15000,
+    description: 'Assorted fresh surplus pastries including almond croissants, pain au chocolat, fruit tarts, and whole grain sourdough baguettes. Guaranteed min. 3.3x value!',
     category: 'Bakery',
     originalPrice: 15000,
     discountedPrice: 4500,
@@ -259,6 +269,8 @@ export const INITIAL_OFFERS: Offer[] = [
     quantityAvailable: 3,
     pickupStart: '18:00',
     pickupEnd: '19:30',
+    pickupTiming: 'TODAY',
+    nextDropTime: 'Tomorrow 16:00',
     imageUrl: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 0.8,
     rating: 4.9,
@@ -274,8 +286,10 @@ export const INITIAL_OFFERS: Offer[] = [
     businessId: 'b2',
     businessName: 'Bourbon Coffee & Bistro',
     businessLogo: 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=150',
-    title: 'Gourmet Sandwich & Snack Bundle',
-    description: 'Grilled chicken panini, avocado toast, fresh fruit cup, and cold brew coffee.',
+    title: 'Gourmet Sandwich & Snack Magic Bag',
+    bagType: 'Surprise Meal Box',
+    guaranteedValue: 18000,
+    description: 'Grilled chicken panini, avocado toast, fresh seasonal fruit bowl, and cold brew coffee combo.',
     category: 'Cafe',
     originalPrice: 18000,
     discountedPrice: 6000,
@@ -284,6 +298,8 @@ export const INITIAL_OFFERS: Offer[] = [
     quantityAvailable: 4,
     pickupStart: '19:00',
     pickupEnd: '20:30',
+    pickupTiming: 'TODAY',
+    nextDropTime: 'Tomorrow 17:00',
     imageUrl: 'https://images.pexels.com/photos/1647163/pexels-photo-1647163.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 1.2,
     rating: 4.8,
@@ -299,8 +315,10 @@ export const INITIAL_OFFERS: Offer[] = [
     businessId: 'b3',
     businessName: 'Simba Supermarket Express',
     businessLogo: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=150',
-    title: 'Fresh Grocery & Deli Rescue Bag',
-    description: 'Pre-packaged roasted chicken meal, organic Greek yogurt, berries, and artisan sourdough loaf.',
+    title: 'Fresh Grocery & Deli Rescue Box',
+    bagType: 'Surprise Groceries Box',
+    guaranteedValue: 24000,
+    description: 'Pre-packaged roasted chicken meal, organic Greek yogurt, fresh berries, and artisan sourdough loaf.',
     category: 'Supermarket',
     originalPrice: 24000,
     discountedPrice: 7500,
@@ -309,6 +327,8 @@ export const INITIAL_OFFERS: Offer[] = [
     quantityAvailable: 5,
     pickupStart: '20:00',
     pickupEnd: '21:30',
+    pickupTiming: 'TODAY',
+    nextDropTime: 'Tomorrow 18:00',
     imageUrl: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 2.1,
     rating: 4.7,
@@ -324,8 +344,10 @@ export const INITIAL_OFFERS: Offer[] = [
     businessId: 'b4',
     businessName: 'Grand Legacy Hotel Buffet',
     businessLogo: 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg?auto=compress&cs=tinysrgb&w=150',
-    title: 'Executive Buffet Feast Box',
-    description: 'Generous tray of grilled tilapia, coconut rice, roasted vegetables, and tiramisu dessert.',
+    title: 'Executive Buffet Feast Magic Box',
+    bagType: 'Buffet Feast Box',
+    guaranteedValue: 35000,
+    description: 'Generous gourmet tray of grilled tilapia, coconut rice, roasted vegetables, and tiramisu dessert from evening banquet surplus.',
     category: 'Hotel',
     originalPrice: 35000,
     discountedPrice: 9500,
@@ -334,6 +356,8 @@ export const INITIAL_OFFERS: Offer[] = [
     quantityAvailable: 2,
     pickupStart: '21:00',
     pickupEnd: '22:15',
+    pickupTiming: 'TODAY',
+    nextDropTime: 'Tomorrow 19:30',
     imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 3.4,
     rating: 4.95,
@@ -349,16 +373,20 @@ export const INITIAL_OFFERS: Offer[] = [
     businessId: 'b5',
     businessName: 'Green Leaf Organic Salad Bar',
     businessLogo: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=150',
-    title: 'Superfood Vegan Protein Bowl',
-    description: 'Quinoa, roasted sweet potato, kale, edamame, avocado hummus, and raw cold-pressed juice.',
+    title: 'Superfood Vegan Surplus Bowl',
+    bagType: 'Vegan Surplus Bowl',
+    guaranteedValue: 16000,
+    description: 'Quinoa, roasted sweet potato, organic kale, edamame, avocado hummus, and raw cold-pressed juice.',
     category: 'Restaurant',
     originalPrice: 16000,
     discountedPrice: 5000,
     currency: 'RWF',
     quantityTotal: 7,
     quantityAvailable: 6,
-    pickupStart: '18:30',
-    pickupEnd: '20:00',
+    pickupStart: '08:30',
+    pickupEnd: '10:00',
+    pickupTiming: 'TOMORROW',
+    nextDropTime: 'Tomorrow 07:30',
     imageUrl: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 1.5,
     rating: 4.85,
@@ -368,6 +396,35 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: true,
     aiDemandScore: 85,
     aiPriceSuggestion: 4900,
+  },
+  {
+    id: 'off-6',
+    businessId: 'b6',
+    businessName: 'Inzora Rooftop Cafe',
+    businessLogo: 'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg?auto=compress&cs=tinysrgb&w=150',
+    title: 'Morning Bakery & Cold Tea Bag',
+    bagType: 'Surprise Pastry Bag',
+    guaranteedValue: 12000,
+    description: 'Gluten-free spiced carrot cake, fresh granola yogurt parfait, and hibiscus iced tea.',
+    category: 'Cafe',
+    originalPrice: 12000,
+    discountedPrice: 4000,
+    currency: 'RWF',
+    quantityTotal: 4,
+    quantityAvailable: 0,
+    pickupStart: '09:00',
+    pickupEnd: '10:30',
+    pickupTiming: 'TOMORROW',
+    nextDropTime: 'Tomorrow 08:00',
+    imageUrl: 'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg?auto=compress&cs=tinysrgb&w=800',
+    distanceKm: 2.8,
+    rating: 4.8,
+    isVegetarian: true,
+    isVegan: false,
+    isHalal: true,
+    isGlutenFree: true,
+    aiDemandScore: 92,
+    aiPriceSuggestion: 4000,
   }
 ];
 

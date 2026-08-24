@@ -26,7 +26,9 @@ import {
   Camera,
   CheckCircle2,
   X,
-  Clock
+  Clock,
+  Bell,
+  EyeOff
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -55,6 +57,10 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
   const [activeTab, setActiveTab] = useState<'OFFERS' | 'ORDERS' | 'FAVORITES' | 'IMPACT'>('OFFERS');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [language, setLanguage] = useState<'EN' | 'FR' | 'RW'>('EN');
+  
+  // TGTG Specific filters
+  const [timingFilter, setTimingFilter] = useState<'ALL' | 'TODAY' | 'TOMORROW'>('ALL');
+  const [hideSoldOut, setHideSoldOut] = useState(false);
 
   // Review modal state
   const [reviewOrder, setReviewOrder] = useState<any | null>(null);
@@ -79,6 +85,13 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       return false;
     }
 
+    // Timing filter (Today vs Tomorrow)
+    if (timingFilter === 'TODAY' && offer.pickupTiming === 'TOMORROW') return false;
+    if (timingFilter === 'TOMORROW' && offer.pickupTiming !== 'TOMORROW') return false;
+
+    // Hide sold out
+    if (hideSoldOut && offer.quantityAvailable <= 0) return false;
+
     // Dietary filters
     if (filterDietary.vegetarian && !offer.isVegetarian) return false;
     if (filterDietary.vegan && !offer.isVegan) return false;
@@ -92,6 +105,9 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
   });
 
   const CATEGORIES = ['All', 'Bakery', 'Supermarket', 'Restaurant', 'Hotel', 'Cafe'];
+
+  // Check if any favorited store has active bags
+  const favoriteActiveBags = offers.filter(o => favorites.includes(o.businessId) && o.quantityAvailable > 0);
 
   const submitReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,19 +134,19 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
           
           <div className="space-y-3 max-w-xl">
             <div className="flex items-center space-x-2">
-              <div className="inline-flex items-center space-x-2 bg-brand-500/10 border border-brand-500/30 px-3 py-1 rounded-full text-xs font-bold text-brand-400">
+              <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold text-emerald-400">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Fresh End-of-Day Specials • 50–70% Off</span>
+                <span>Chef&apos;s Mystery Bags • Guaranteed 3x Minimum Value</span>
               </div>
 
               {/* Language Switcher Pill */}
               <div className="flex items-center bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-300 space-x-1">
-                <Globe className="w-3 h-3 text-brand-400" />
+                <Globe className="w-3 h-3 text-emerald-400" />
                 {(['EN', 'FR', 'RW'] as const).map(lang => (
                   <button
                     key={lang}
                     onClick={() => setLanguage(lang)}
-                    className={`px-1.5 py-0.5 rounded ${language === lang ? 'bg-brand-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-1.5 py-0.5 rounded cursor-pointer ${language === lang ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
                   >
                     {lang}
                   </button>
@@ -139,31 +155,54 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black text-slate-100 tracking-tight leading-tight">
-              Delicious Surplus Packages from Kigali&apos;s Finest Spots.
+              Rescue Delicious Surprise Bags from Kigali&apos;s Top Kitchens.
             </h1>
             <p className="text-xs sm:text-sm text-slate-300">
-              Enjoy premium chef&apos;s mystery bags & freshly baked daily surplus before store closing while preventing food emissions in Rwanda.
+              Pay 1/3 of the regular price. Pick up surplus bakery boxes, restaurant buffets, and groceries before closing time.
             </p>
           </div>
 
           {/* Environmental Impact Metrics Badge */}
           <div className="grid grid-cols-3 gap-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
             <div className="text-center">
-              <div className="text-lg sm:text-xl font-black text-brand-400">{user.mealsRescued}</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Packages Saved</div>
+              <div className="text-lg sm:text-xl font-black text-emerald-400">{user.mealsRescued}</div>
+              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Bags Rescued</div>
             </div>
             <div className="text-center border-x border-slate-800 px-2">
-              <div className="text-lg sm:text-xl font-black text-emerald-400">{user.co2SavedKg} kg</div>
+              <div className="text-lg sm:text-xl font-black text-teal-400">{user.co2SavedKg} kg</div>
               <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">CO₂ Prevented</div>
             </div>
             <div className="text-center">
               <div className="text-lg sm:text-xl font-black text-amber-400">{user.badgeTier || 'Eco Champion 🌿'}</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">FreshFind Tier</div>
+              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Tier Badge</div>
             </div>
           </div>
 
         </div>
       </div>
+
+      {/* Favorite Store Drop Alert Banner if any */}
+      {favoriteActiveBags.length > 0 && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 to-slate-900 border border-emerald-500/40 flex items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-400">
+              <Bell className="w-5 h-5 animate-bounce" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-100">
+                ⚡ Favorite Alert: <span className="text-emerald-400">{favoriteActiveBags[0].businessName}</span> has {favoriteActiveBags[0].quantityAvailable} surprise bags available!
+              </p>
+              <p className="text-[10px] text-slate-400">Collect today between {favoriteActiveBags[0].pickupStart} - {favoriteActiveBags[0].pickupEnd}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onSelectOffer(favoriteActiveBags[0])}
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition cursor-pointer"
+          >
+            Quick Grab
+          </button>
+        </div>
+      )}
 
       {/* NAVIGATION TABS */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4 overflow-x-auto">
@@ -172,19 +211,19 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             onClick={() => setActiveTab('OFFERS')}
             className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
               activeTab === 'OFFERS'
-                ? 'bg-brand-500 text-slate-950 shadow-lg shadow-brand-500/20'
+                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Chef&apos;s Surprise Bags ({filteredOffers.length})</span>
+            <span>Surprise Magic Bags ({filteredOffers.length})</span>
           </button>
           
           <button
             onClick={() => setActiveTab('ORDERS')}
             className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition relative cursor-pointer ${
               activeTab === 'ORDERS'
-                ? 'bg-brand-500 text-slate-950 shadow-lg shadow-brand-500/20'
+                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
             }`}
           >
@@ -196,12 +235,12 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             onClick={() => setActiveTab('FAVORITES')}
             className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
               activeTab === 'FAVORITES'
-                ? 'bg-brand-500 text-slate-950 shadow-lg shadow-brand-500/20'
+                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
                 : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
-            <span>Saved Bakeries ({favorites.length})</span>
+            <span>Favorited Stores ({favorites.length})</span>
           </button>
         </div>
 
@@ -211,7 +250,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             <button
               onClick={() => setDisplayMode('GRID')}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                displayMode === 'GRID' ? 'bg-brand-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+                displayMode === 'GRID' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Grid className="w-3.5 h-3.5" />
@@ -220,7 +259,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             <button
               onClick={() => setDisplayMode('MAP')}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                displayMode === 'MAP' ? 'bg-brand-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+                displayMode === 'MAP' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <MapIcon className="w-3.5 h-3.5" />
@@ -234,11 +273,55 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {activeTab === 'OFFERS' && (
         <div className="space-y-6">
           
-          {/* CATEGORIES & DIETARY FILTER BAR */}
+          {/* CATEGORIES & TGTG FILTER BAR */}
           <div className="space-y-4">
+            
+            {/* Row 1: Collection Timing Pills (Today vs Tomorrow) & Hide Sold Out */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800">
+              <div className="flex items-center space-x-2">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-2">Collection:</span>
+                <button
+                  onClick={() => setTimingFilter('ALL')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    timingFilter === 'ALL' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  All Times
+                </button>
+                <button
+                  onClick={() => setTimingFilter('TODAY')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    timingFilter === 'TODAY' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🟢 Collect Today
+                </button>
+                <button
+                  onClick={() => setTimingFilter('TOMORROW')}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    timingFilter === 'TOMORROW' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  ⏳ Collect Tomorrow
+                </button>
+              </div>
+
+              {/* Hide Sold Out Toggle */}
+              <button
+                onClick={() => setHideSoldOut(!hideSoldOut)}
+                className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                  hideSoldOut 
+                    ? 'bg-emerald-950 text-emerald-400 border-emerald-500/50' 
+                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <EyeOff className="w-3.5 h-3.5" />
+                <span>{hideSoldOut ? 'Hiding Sold Out' : 'Hide Sold Out'}</span>
+              </button>
+            </div>
+
+            {/* Row 2: Categories */}
             <div className="flex items-center justify-between gap-4">
-              
-              {/* Category Pills */}
               <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
                 {CATEGORIES.map(cat => (
                   <button
@@ -260,7 +343,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                 onClick={() => setShowFilterDrawer(!showFilterDrawer)}
                 className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
                   showFilterDrawer 
-                    ? 'bg-brand-500/20 text-brand-400 border-brand-500/40' 
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
                     : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
                 }`}
               >
@@ -305,7 +388,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                 <div>
                   <div className="flex justify-between font-semibold text-slate-300 mb-1">
                     <span>Maximum Distance Radius</span>
-                    <span className="text-brand-400">{maxDistanceKm} km</span>
+                    <span className="text-emerald-400">{maxDistanceKm} km</span>
                   </div>
                   <input
                     type="range"
@@ -314,7 +397,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                     step="0.5"
                     value={maxDistanceKm}
                     onChange={(e) => setMaxDistanceKm(parseFloat(e.target.value))}
-                    className="w-full accent-brand-500 cursor-pointer"
+                    className="w-full accent-emerald-500 cursor-pointer"
                   />
                 </div>
               </div>
@@ -354,37 +437,30 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
           <h2 className="text-lg font-bold text-slate-100">Your Active & Past Food Pickups</h2>
           {orders.length === 0 ? (
             <div className="p-8 text-center bg-slate-900/50 rounded-2xl border border-slate-800">
-              <p className="text-sm text-slate-400">No orders placed yet. Explore surplus offers to reserve food!</p>
+              <p className="text-sm text-slate-400">No orders placed yet. Explore surprise boxes to rescue food!</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {orders.map(ord => (
-                <div key={ord.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {orders.map(order => (
+                <div key={order.id} className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-mono bg-slate-800 text-brand-400 px-2 py-0.5 rounded font-bold">{ord.orderNumber}</span>
-                      <span className="text-sm font-bold text-slate-200">{ord.offerTitle}</span>
+                      <span className="text-xs font-mono font-bold text-emerald-400">#{order.orderNumber}</span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        order.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                      }`}>
+                        {order.status}
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-400">{ord.businessName} • {ord.quantity} package(s) • <strong className="text-slate-200 font-mono">{ord.totalPrice.toLocaleString()} RWF</strong></p>
-                    <p className="text-[11px] text-amber-400 flex items-center space-x-1 pt-0.5">
-                      <Clock className="w-3 h-3" />
-                      <span>{ord.pickupWindow}</span>
-                    </p>
+                    <h4 className="text-sm font-bold text-slate-200">{order.offerTitle}</h4>
+                    <p className="text-xs text-slate-400">{order.businessName} • {order.pickupWindow}</p>
                   </div>
-
+                  
                   <div className="flex items-center space-x-3">
-                    <span className="text-xs font-bold px-3 py-1 rounded-xl bg-emerald-950 text-emerald-400 border border-emerald-800">
-                      {ord.status}
-                    </span>
-
-                    {/* Freshness Rating & Review Trigger */}
-                    <button
-                      onClick={() => setReviewOrder(ord)}
-                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-1 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center space-x-1"
-                    >
-                      <Star className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Rate Freshness</span>
-                    </button>
+                    <div className="text-right">
+                      <p className="text-xs font-extrabold text-slate-100">{order.totalPrice.toLocaleString()} RWF</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{order.qrToken}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -396,114 +472,18 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {/* FAVORITES TAB CONTENT */}
       {activeTab === 'FAVORITES' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-100">Saved Bakeries & Restaurants</h2>
+          <h2 className="text-lg font-bold text-slate-100">Your Favorite Food Rescue Partners</h2>
           {favorites.length === 0 ? (
             <div className="p-8 text-center bg-slate-900/50 rounded-2xl border border-slate-800">
-              <p className="text-sm text-slate-400">No saved stores yet. Click the heart icon on any offer to save!</p>
+              <p className="text-sm text-slate-400">Click the heart icon on any store to get notified when they drop new surprise boxes!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {businesses.filter(b => favorites.includes(b.id)).map(b => (
-                <div key={b.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center space-x-3">
-                  <img src={b.logoUrl} alt={b.name} className="w-12 h-12 rounded-xl object-cover" />
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-slate-200">{b.name}</h4>
-                    <p className="text-xs text-slate-400">{b.category} • {b.district}</p>
-                  </div>
-                  <button
-                    onClick={() => toggleFavorite(b.id)}
-                    className="text-rose-500 hover:text-slate-400 transition"
-                  >
-                    <Heart className="w-4 h-4 fill-rose-500" />
-                  </button>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {offers.filter(o => favorites.includes(o.businessId)).map(offer => (
+                <OfferCard key={offer.id} offer={offer} onSelect={onSelectOffer} />
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Freshness Review Modal */}
-      {reviewOrder && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center">
-              <h3 className="text-base font-bold text-slate-100 flex items-center space-x-2">
-                <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                <span>Rate Food Freshness & Quality</span>
-              </h3>
-              <button onClick={() => setReviewOrder(null)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-400">
-              Order <strong className="text-brand-400">#{reviewOrder.orderNumber}</strong> from <strong className="text-slate-200">{reviewOrder.businessName}</strong>
-            </p>
-
-            {/* Star selector */}
-            <div className="flex items-center justify-center space-x-2 py-2">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setReviewRating(star)}
-                  className="p-1 cursor-pointer transition hover:scale-125"
-                >
-                  <Star className={`w-7 h-7 ${star <= reviewRating ? 'text-amber-400 fill-amber-400' : 'text-slate-700'}`} />
-                </button>
-              ))}
-            </div>
-
-            {/* Freshness Badge Selector */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Food Condition at Pickup:</label>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                {(['EXCELLENT', 'FRESH', 'AVERAGE'] as const).map(score => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() => setFreshnessScore(score)}
-                    className={`py-2 rounded-xl font-bold border transition ${
-                      freshnessScore === score
-                        ? 'bg-brand-500 text-slate-950 border-brand-400'
-                        : 'bg-slate-950 text-slate-400 border-slate-800'
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Feedback for Chef / Bakery:</label>
-              <textarea
-                rows={3}
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-                placeholder="Delicious pastries, well packed and fresh!"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-brand-500"
-              />
-            </div>
-
-            <div className="flex items-center space-x-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setReviewOrder(null)}
-                className="w-1/2 bg-slate-800 text-slate-300 py-2.5 rounded-xl text-xs font-semibold cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={submitReview}
-                className="w-1/2 bg-brand-500 hover:bg-brand-400 text-slate-950 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"
-              >
-                Submit Review
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
