@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/lib/models/User';
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing email or password' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    await connectToDatabase();
+
+    const user = await User.findOne({ email });
     if (!user || !user.passwordHash) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }

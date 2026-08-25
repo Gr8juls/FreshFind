@@ -1,8 +1,9 @@
 // lib/services/offers.service.ts
-// Offers domain service — used by Next.js API routes.
-// Replaces the dead backend/src/offers/offers.service.ts NestJS stub.
+// Offers domain service — used by Next.js API routes with MongoDB/Mongoose.
 
-import { prisma } from '@/lib/prisma';
+import connectToDatabase from '@/lib/mongodb';
+import Offer from '@/lib/models/Offer';
+import Business from '@/lib/models/Business';
 import { INITIAL_OFFERS } from '@/lib/mockData';
 
 export interface OffersFilter {
@@ -20,61 +21,62 @@ export interface OffersFilter {
  */
 export async function findActiveOffers(filters: OffersFilter = {}) {
   try {
-    const where: any = {
+    await connectToDatabase();
+
+    const query: any = {
       status: 'ACTIVE',
-      quantityAvailable: { gt: 0 },
-      pickupEnd: { gte: new Date() },
+      quantityAvailable: { $gt: 0 },
+      pickupEnd: { $gte: new Date() },
     };
 
     if (filters.category && filters.category !== 'All') {
-      where.category = { name: filters.category };
+      query.categoryName = filters.category;
     }
-    if (filters.isVegetarian) where.isVegetarian = true;
-    if (filters.isVegan) where.isVegan = true;
-    if (filters.isHalal) where.isHalal = true;
-    if (filters.isGlutenFree) where.isGlutenFree = true;
+    if (filters.isVegetarian) query.isVegetarian = true;
+    if (filters.isVegan) query.isVegan = true;
+    if (filters.isHalal) query.isHalal = true;
+    if (filters.isGlutenFree) query.isGlutenFree = true;
 
-    const dbOffers = await prisma.offer.findMany({
-      where,
-      include: {
-        business: { include: { location: true } },
-        images: true,
-        category: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const dbOffers = await Offer.find(query).sort({ createdAt: -1 }).lean();
 
-    if (dbOffers.length === 0) {
-      // Return structured mock data so the UI never shows an empty list during dev
+    if (!dbOffers || dbOffers.length === 0) {
       return { source: 'mock', data: INITIAL_OFFERS };
     }
 
+    // Fetch related businesses for names/logos
+    const businessIds = Array.from(new Set(dbOffers.map((o) => o.businessId)));
+    const businesses = await Business.find({ _id: { $in: businessIds } }).lean();
+    const businessMap = new Map(businesses.map((b) => [(b as any)._id.toString(), b]));
+
     // Map DB shape → frontend Offer interface
-    const mapped = dbOffers.map((o) => ({
-      id: o.id,
-      businessId: o.businessId,
-      businessName: o.business.name,
-      businessLogo: o.business.logoUrl || '',
-      title: o.title,
-      description: o.description,
-      category: o.category?.name || '',
-      originalPrice: Number(o.originalPrice),
-      discountedPrice: Number(o.discountedPrice),
-      currency: 'RWF',
-      quantityTotal: o.quantityTotal,
-      quantityAvailable: o.quantityAvailable,
-      pickupStart: o.pickupStart.toISOString(),
-      pickupEnd: o.pickupEnd.toISOString(),
-      imageUrl: o.images.find((i) => i.isPrimary)?.imageUrl || o.images[0]?.imageUrl || '',
-      distanceKm: 0, // computed on frontend from geo coords
-      rating: o.business.rating,
-      isVegetarian: o.isVegetarian,
-      isVegan: o.isVegan,
-      isHalal: o.isHalal,
-      isGlutenFree: o.isGlutenFree,
-      aiDemandScore: Math.round((o.aiPredictedDemand || 0) * 100),
-      aiPriceSuggestion: Number(o.aiSuggestedPrice || 0),
-    }));
+    const mapped = dbOffers.map((o: any) => {
+      const b: any = businessMap.get(o.businessId?.toString()) || {};
+      return {
+        id: o._id.toString(),
+        businessId: o.businessId,
+        businessName: b.name || 'Local Partner',
+        businessLogo: b.logoUrl || '',
+        title: o.title,
+        description: o.description,
+        category: o.categoryName || '',
+        originalPrice: Number(o.originalPrice),
+        discountedPrice: Number(o.discountedPrice),
+        currency: 'RWF',
+        quantityTotal: o.quantityTotal,
+        quantityAvailable: o.quantityAvailable,
+        pickupStart: new Date(o.pickupStart).toISOString(),
+        pickupEnd: new Date(o.pickupEnd).toISOString(),
+        imageUrl: o.images?.find((i: any) => i.isPrimary)?.imageUrl || o.images?.[0]?.imageUrl || '',
+        distanceKm: 0,
+        rating: b.rating || 4.8,
+        isVegetarian: o.isVegetarian,
+        isVegan: o.isVegan,
+        isHalal: o.isHalal,
+        isGlutenFree: o.isGlutenFree,
+        aiDemandScore: Math.round((o.aiPredictedDemand || 0) * 100),
+        aiPriceSuggestion: Number(o.aiSuggestedPrice || 0),
+      };
+    });
 
     return { source: 'db', data: mapped };
   } catch (err) {
@@ -87,45 +89,42 @@ export async function findActiveOffers(filters: OffersFilter = {}) {
  * Fetches a single offer by ID from the database.
  */
 export async function findOfferById(offerId: string) {
-  return prisma.offer.findUnique({
-    where: { id: offerId },
-    include: {
-      business: { include: { location: true } },
-      images: true,
-      category: true,
-    },
-  });
+  await connectToDatabase();
+  return Offer.findById(offerId).lean();
 }
 
 /**
  * Creates a new offer with an AI-computed demand score heuristic.
  */
-export async function createOffer(businessId: string, data: {
-  categoryId: string;
-  title: string;
-  description: string;
-  originalPrice: number;
-  discountedPrice: number;
-  quantityTotal: number;
-  pickupStart: Date;
-  pickupEnd: Date;
-  pickupInstructions?: string;
-  isVegetarian?: boolean;
-  isVegan?: boolean;
-  isHalal?: boolean;
-  isGlutenFree?: boolean;
-}) {
+export async function createOffer(
+  businessId: string,
+  data: {
+    categoryId?: string;
+    categoryName?: string;
+    title: string;
+    description: string;
+    originalPrice: number;
+    discountedPrice: number;
+    quantityTotal: number;
+    pickupStart: Date;
+    pickupEnd: Date;
+    pickupInstructions?: string;
+    isVegetarian?: boolean;
+    isVegan?: boolean;
+    isHalal?: boolean;
+    isGlutenFree?: boolean;
+  }
+) {
+  await connectToDatabase();
   const discountRatio = (data.originalPrice - data.discountedPrice) / data.originalPrice;
   const aiPredictedDemand = Math.min(0.99, 0.5 + discountRatio * 0.5);
   const aiSuggestedPrice = data.originalPrice * 0.35;
 
-  return prisma.offer.create({
-    data: {
-      ...data,
-      businessId,
-      quantityAvailable: data.quantityTotal,
-      aiPredictedDemand,
-      aiSuggestedPrice,
-    },
+  return Offer.create({
+    ...data,
+    businessId,
+    quantityAvailable: data.quantityTotal,
+    aiPredictedDemand,
+    aiSuggestedPrice,
   });
 }

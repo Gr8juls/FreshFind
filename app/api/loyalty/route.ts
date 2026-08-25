@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/lib/models/User';
 
 export async function GET() {
   try {
@@ -11,24 +12,23 @@ export async function GET() {
     if (token) {
       const payload = await verifyToken(token);
       if (payload) {
-        const userLoyalty = await prisma.loyaltyAccount.findUnique({
-          where: { userId: payload.userId },
-          include: {
-            user: {
-              select: { fullName: true, email: true },
-            },
-          },
-        });
+        await connectToDatabase();
 
-        if (userLoyalty) {
+        // loyaltyAccount is embedded inside User
+        const user = await User.findById(payload.userId)
+          .select('fullName email loyaltyAccount')
+          .lean();
+
+        if (user && user.loyaltyAccount) {
+          const la = user.loyaltyAccount;
           return NextResponse.json({
-            id: userLoyalty.id,
-            points: userLoyalty.points,
-            badgeTier: userLoyalty.badgeTier,
-            mealsRescued: userLoyalty.mealsRescued,
-            co2SavedKg: userLoyalty.co2SavedKg,
+            id: (user as any)._id.toString(),
+            points: la.points,
+            badgeTier: la.badgeTier,
+            mealsRescued: la.mealsRescued,
+            co2SavedKg: la.co2SavedKg,
             user: {
-              fullName: userLoyalty.user.fullName || userLoyalty.user.email,
+              fullName: user.fullName || user.email,
             },
           });
         }

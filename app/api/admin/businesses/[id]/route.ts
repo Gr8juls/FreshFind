@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/adminAuth';
+import connectToDatabase from '@/lib/mongodb';
+import Business from '@/lib/models/Business';
 
 export async function PATCH(
   request: Request,
@@ -14,14 +15,21 @@ export async function PATCH(
     const body = await request.json();
     const { isVerified, status } = body;
 
-    const updateData: any = {};
+    await connectToDatabase();
+
+    const updateData: Record<string, any> = {};
     if (typeof isVerified === 'boolean') updateData.isVerified = isVerified;
     if (status) updateData.status = status;
 
-    const updatedBusiness = await prisma.business.update({
-      where: { id },
-      data: updateData,
-    });
+    const updatedBusiness = await Business.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updatedBusiness) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    }
 
     return NextResponse.json({
       message: 'Business updated successfully',

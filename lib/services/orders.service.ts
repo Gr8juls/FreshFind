@@ -1,12 +1,14 @@
 // lib/services/orders.service.ts
-// Orders & QR verification service — used by Next.js API routes.
-// Replaces the dead backend/src/orders/orders.service.ts NestJS stub.
+// Orders & QR verification service — MongoDB/Mongoose for Next.js API routes.
 
-import { prisma } from '@/lib/prisma';
+import connectToDatabase from '@/lib/mongodb';
+import Order from '@/lib/models/Order';
+import Offer from '@/lib/models/Offer';
+import User from '@/lib/models/User';
 import * as crypto from 'crypto';
 
 /**
- * Reserves an offer for a user within a DB transaction.
+ * Reserves an offer for a user.
  * Atomically decrements inventory, creates an Order + QR pickup code.
  * Returns the new Order plus the QR token for the receipt screen.
  */
@@ -16,61 +18,54 @@ export async function reserveOffer(
   quantity: number,
   couponId?: string
 ) {
-  return prisma.$transaction(async (tx) => {
-    const offer = await tx.offer.findUnique({ where: { id: offerId } });
+  await connectToDatabase();
 
-    if (!offer || offer.status !== 'ACTIVE') {
+  // Atomically decrement stock if sufficient available
+  const offer = await Offer.findOneAndUpdate(
+    { _id: offerId, status: 'ACTIVE', quantityAvailable: { $gte: quantity } },
+    { $inc: { quantityAvailable: -quantity } },
+    { new: true }
+  );
+
+  if (!offer) {
+    // Check if offer exists to give clear error message
+    const existing = await Offer.findById(offerId);
+    if (!existing || existing.status !== 'ACTIVE') {
       throw new Error('Offer is no longer available.');
     }
-    if (offer.quantityAvailable < quantity) {
-      throw new Error(`Only ${offer.quantityAvailable} left in stock.`);
-    }
+    throw new Error(`Only ${existing.quantityAvailable} left in stock.`);
+  }
 
-    // Decrement inventory atomically
-    await tx.offer.update({
-      where: { id: offerId },
-      data: { quantityAvailable: { decrement: quantity } },
-    });
+  const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute hold
+  const orderNumber = `FF-${Date.now().toString().slice(-6)}`;
+  const subtotal = Number(offer.discountedPrice) * quantity;
+  const qrToken = `QR-FF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
-    const reservedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute hold
-    const orderNumber = `FF-${Date.now().toString().slice(-6)}`;
-    const subtotal = Number(offer.discountedPrice) * quantity;
-
-    const order = await tx.order.create({
-      data: {
-        orderNumber,
-        userId,
-        status: 'RESERVED',
-        subtotal,
-        totalAmount: subtotal,
-        reservedUntil,
-        ...(couponId ? { couponId } : {}),
-        items: {
-          create: {
-            offerId,
-            quantity,
-            unitPrice: offer.discountedPrice,
-            totalPrice: subtotal,
-          },
-        },
+  const order = await Order.create({
+    orderNumber,
+    userId,
+    status: 'RESERVED',
+    subtotal,
+    totalAmount: subtotal,
+    reservedUntil,
+    ...(couponId ? { couponId } : {}),
+    items: [
+      {
+        offerId,
+        quantity,
+        unitPrice: offer.discountedPrice,
+        totalPrice: subtotal,
       },
-      include: {
-        items: { include: { offer: { include: { business: true } } } },
-      },
-    });
-
-    // Generate a cryptographically unique QR token
-    const qrToken = `QR-FF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-    await tx.qRPickupCode.create({
-      data: {
-        orderId: order.id,
-        qrToken,
-        qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?data=${qrToken}&size=200x200`,
-      },
-    });
-
-    return { order, qrToken, orderNumber };
+    ],
+    qrCode: {
+      qrToken,
+      qrImageUrl: `https://api.qrserver.com/v1/create-qr-code/?data=${qrToken}&size=200x200`,
+      isScanned: false,
+      createdAt: new Date(),
+    },
   });
+
+  return { order, qrToken, orderNumber };
 }
 
 /**
@@ -78,71 +73,57 @@ export async function reserveOffer(
  * Logs the environmental impact on completion.
  */
 export async function verifyQRPickup(merchantUserId: string, qrToken: string) {
-  const qrRecord = await prisma.qRPickupCode.findUnique({
-    where: { qrToken },
-    include: {
-      order: {
-        include: {
-          items: { include: { offer: true } },
-        },
-      },
-    },
-  });
+  await connectToDatabase();
 
-  if (!qrRecord) throw new Error('QR Code not found.');
-  if (qrRecord.isScanned) throw new Error('QR Code has already been redeemed.');
-  if (qrRecord.order.status === 'CANCELLED' || qrRecord.order.status === 'EXPIRED') {
+  const order = await Order.findOne({ 'qrCode.qrToken': qrToken });
+
+  if (!order) throw new Error('QR Code not found.');
+  if (order.qrCode?.isScanned) throw new Error('QR Code has already been redeemed.');
+  if (order.status === 'CANCELLED' || order.status === 'EXPIRED') {
     throw new Error('This order has been cancelled or expired.');
   }
 
-  await prisma.$transaction([
-    prisma.qRPickupCode.update({
-      where: { id: qrRecord.id },
-      data: { isScanned: true, scannedAt: new Date(), scannedBy: merchantUserId },
-    }),
-    prisma.order.update({
-      where: { id: qrRecord.orderId },
-      data: { status: 'COMPLETED', collectedAt: new Date() },
-    }),
-    prisma.environmentalImpact.create({
-      data: {
-        orderId: qrRecord.orderId,
-        foodWeightKg: qrRecord.order.items.reduce(
-          (acc, item) => acc + item.quantity * 1.2,
-          0
-        ),
-        co2SavedKg: qrRecord.order.items.reduce(
-          (acc, item) => acc + item.quantity * 2.5,
-          0
-        ),
-      },
-    }),
-  ]);
+  const foodWeightKg = order.items.reduce((acc, item) => acc + item.quantity * 1.2, 0);
+  const co2SavedKg = order.items.reduce((acc, item) => acc + item.quantity * 2.5, 0);
+  const totalItems = order.items.reduce((acc, i) => acc + i.quantity, 0);
 
-  // Update loyalty account for the customer
+  await Order.updateOne(
+    { _id: order._id },
+    {
+      $set: {
+        status: 'COMPLETED',
+        collectedAt: new Date(),
+        'qrCode.isScanned': true,
+        'qrCode.scannedAt': new Date(),
+        'qrCode.scannedBy': merchantUserId,
+        impact: {
+          foodWeightKg,
+          co2SavedKg,
+          createdAt: new Date(),
+        },
+      },
+    }
+  );
+
+  // Update loyalty account for customer
   try {
-    const totalItems = qrRecord.order.items.reduce((acc, i) => acc + i.quantity, 0);
-    await prisma.loyaltyAccount.upsert({
-      where: { userId: qrRecord.order.userId },
-      create: {
-        userId: qrRecord.order.userId,
-        points: totalItems * 50,
-        mealsRescued: totalItems,
-        co2SavedKg: totalItems * 2.5,
-      },
-      update: {
-        points: { increment: totalItems * 50 },
-        mealsRescued: { increment: totalItems },
-        co2SavedKg: { increment: totalItems * 2.5 },
-      },
-    });
+    await User.updateOne(
+      { _id: order.userId },
+      {
+        $inc: {
+          'loyaltyAccount.points': totalItems * 50,
+          'loyaltyAccount.mealsRescued': totalItems,
+          'loyaltyAccount.co2SavedKg': totalItems * 2.5,
+        },
+      }
+    );
   } catch (loyaltyErr) {
     console.error('[OrdersService] Loyalty update failed (non-critical):', loyaltyErr);
   }
 
   return {
     success: true,
-    message: `Order #${qrRecord.order.orderNumber} verified and marked as COMPLETED.`,
-    orderNumber: qrRecord.order.orderNumber,
+    message: `Order #${order.orderNumber} verified and marked as COMPLETED.`,
+    orderNumber: order.orderNumber,
   };
 }

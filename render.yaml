@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: freshfind-app
+    runtime: node
+    plan: free
+    region: frankfurt # or oregon, ohio, singapore
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false # Set securely in Render dashboard (e.g., from MongoDB Atlas)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NEXTAUTH_SECRET
+        generateValue: true
+      - key: NEXTAUTH_URL
+        sync: false # Set to your Render service URL (e.g. https://freshfind-app.onrender.com)

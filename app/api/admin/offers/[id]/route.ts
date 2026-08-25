@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/adminAuth';
+import connectToDatabase from '@/lib/mongodb';
+import Offer from '@/lib/models/Offer';
 
 export async function DELETE(
   request: Request,
@@ -12,11 +13,18 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Set offer status to CANCELLED or delete
-    const updatedOffer = await prisma.offer.update({
-      where: { id },
-      data: { status: 'CANCELLED', deletedAt: new Date() },
-    });
+    await connectToDatabase();
+
+    // Set offer status to CANCELLED (soft delete)
+    const updatedOffer = await Offer.findByIdAndUpdate(
+      id,
+      { $set: { status: 'CANCELLED', deletedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!updatedOffer) {
+      return NextResponse.json({ error: 'Offer not found' }, { status: 404 });
+    }
 
     return NextResponse.json({
       message: 'Offer taken down successfully',

@@ -1,37 +1,33 @@
 // lib/services/payments.service.ts
-// Payments gateway service — used by Next.js API routes.
-// Replaces the dead backend/src/payments/payments.service.ts NestJS stub.
-// Real Stripe / MTN MoMo SDK calls go here when you have live credentials.
+// Payments gateway service — MongoDB/Mongoose for Next.js API routes.
 
-import { prisma } from '@/lib/prisma';
+import connectToDatabase from '@/lib/mongodb';
+import Payment from '@/lib/models/Payment';
+import Order from '@/lib/models/Order';
+import User from '@/lib/models/User';
 
 /**
  * Processes an MTN Mobile Money payment for an order.
- * Currently simulates an instant approval (real impl: call MTN MoMo RequestToPay API).
  */
 export async function processMTNMoMoPayment(
   orderId: string,
   phone: string,
   amount: number
 ): Promise<{ transactionRef: string }> {
+  await connectToDatabase();
   const transactionRef = `MOMO-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
 
-  await prisma.payment.create({
-    data: {
-      orderId,
-      methodType: 'MTN_MOMO',
-      status: 'SUCCESSFUL', // TODO: Replace with PENDING + webhook callback in production
-      amount,
-      currency: 'RWF',
-      transactionRef,
-      providerMeta: JSON.stringify({ phone, status: 'APPROVED', provider: 'MTN_MOMO_SANDBOX' }),
-    },
+  await Payment.create({
+    orderId,
+    methodType: 'MTN_MOMO',
+    status: 'SUCCESSFUL',
+    amount,
+    currency: 'RWF',
+    transactionRef,
+    providerMeta: JSON.stringify({ phone, status: 'APPROVED', provider: 'MTN_MOMO_SANDBOX' }),
   });
 
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { status: 'PAID' },
-  });
+  await Order.updateOne({ _id: orderId }, { $set: { status: 'PAID' } });
 
   return { transactionRef };
 }
@@ -44,110 +40,87 @@ export async function processAirtelMoneyPayment(
   phone: string,
   amount: number
 ): Promise<{ transactionRef: string }> {
+  await connectToDatabase();
   const transactionRef = `AIRTEL-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
 
-  await prisma.payment.create({
-    data: {
-      orderId,
-      methodType: 'AIRTEL_MONEY',
-      status: 'SUCCESSFUL',
-      amount,
-      currency: 'RWF',
-      transactionRef,
-      providerMeta: JSON.stringify({ phone, status: 'APPROVED', provider: 'AIRTEL_SANDBOX' }),
-    },
+  await Payment.create({
+    orderId,
+    methodType: 'AIRTEL_MONEY',
+    status: 'SUCCESSFUL',
+    amount,
+    currency: 'RWF',
+    transactionRef,
+    providerMeta: JSON.stringify({ phone, status: 'APPROVED', provider: 'AIRTEL_SANDBOX' }),
   });
 
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { status: 'PAID' },
-  });
+  await Order.updateOne({ _id: orderId }, { $set: { status: 'PAID' } });
 
   return { transactionRef };
 }
 
 /**
  * Processes a Stripe card payment for an order.
- * Real impl: call stripe.paymentIntents.create() with the token.
  */
 export async function processStripeCardPayment(
   orderId: string,
   stripeToken: string,
   amount: number
 ): Promise<{ transactionRef: string }> {
+  await connectToDatabase();
   const transactionRef = `STRIPE-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
 
-  await prisma.payment.create({
-    data: {
-      orderId,
-      methodType: 'STRIPE_CARD',
-      status: 'SUCCESSFUL',
-      amount,
-      currency: 'RWF',
-      transactionRef,
-      providerMeta: JSON.stringify({
-        stripeToken,
-        chargeId: `ch_sandbox_${transactionRef}`,
-      }),
-    },
+  await Payment.create({
+    orderId,
+    methodType: 'STRIPE_CARD',
+    status: 'SUCCESSFUL',
+    amount,
+    currency: 'RWF',
+    transactionRef,
+    providerMeta: JSON.stringify({
+      stripeToken,
+      chargeId: `ch_sandbox_${transactionRef}`,
+    }),
   });
 
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { status: 'PAID' },
-  });
+  await Order.updateOne({ _id: orderId }, { $set: { status: 'PAID' } });
 
   return { transactionRef };
 }
 
 /**
- * Processes a wallet payment — deducts balance from the user's UserWallet.
+ * Processes a wallet payment — deducts balance from the user's embedded wallet.
  */
 export async function processWalletPayment(
   orderId: string,
   userId: string,
   amount: number
 ): Promise<{ transactionRef: string }> {
+  await connectToDatabase();
   const transactionRef = `WALLET-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
 
-  await prisma.$transaction(async (tx) => {
-    const wallet = await tx.userWallet.findUnique({ where: { userId } });
-    if (!wallet || Number(wallet.balance) < amount) {
-      throw new Error('Insufficient wallet balance.');
-    }
+  // Find user and check wallet balance
+  const user = await User.findById(userId);
+  if (!user || (user.wallet?.balance ?? 0) < amount) {
+    throw new Error('Insufficient wallet balance.');
+  }
 
-    await tx.userWallet.update({
-      where: { userId },
-      data: { balance: { decrement: amount } },
-    });
+  // Deduct balance
+  await User.updateOne(
+    { _id: userId },
+    { $inc: { 'wallet.balance': -amount } }
+  );
 
-    await tx.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        amount,
-        type: 'PAYMENT',
-        reference: transactionRef,
-        description: `Payment for order`,
-      },
-    });
-
-    await tx.payment.create({
-      data: {
-        orderId,
-        methodType: 'WALLET',
-        status: 'SUCCESSFUL',
-        amount,
-        currency: 'RWF',
-        transactionRef,
-        providerMeta: JSON.stringify({ walletId: wallet.id }),
-      },
-    });
-
-    await tx.order.update({
-      where: { id: orderId },
-      data: { status: 'PAID' },
-    });
+  await Payment.create({
+    orderId,
+    methodType: 'WALLET',
+    status: 'SUCCESSFUL',
+    amount,
+    currency: 'RWF',
+    transactionRef,
+    providerMeta: JSON.stringify({ userId }),
   });
+
+  await Order.updateOne({ _id: orderId }, { $set: { status: 'PAID' } });
 
   return { transactionRef };
 }

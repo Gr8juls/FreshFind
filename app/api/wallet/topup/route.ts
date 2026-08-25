@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/lib/models/User';
 
 export async function POST(request: Request) {
   try {
@@ -23,36 +24,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid positive amount is required' }, { status: 400 });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const wallet = await tx.userWallet.upsert({
-        where: { userId: payload.userId },
-        create: {
-          userId: payload.userId,
-          balance: numAmount,
-          currency: 'RWF',
-        },
-        update: {
-          balance: { increment: numAmount },
-        },
-      });
+    await connectToDatabase();
 
-      const txRecord = await tx.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          amount: numAmount,
-          type: 'DEPOSIT',
-          reference: `TOPUP-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
-          description: `Self wallet top-up via ${method || 'Mobile Money'}`,
-        },
-      });
+    // wallet is an embedded sub-document on User — use $inc for atomic update
+    const user = await User.findOneAndUpdate(
+      { _id: payload.userId },
+      {
+        $inc: { 'wallet.balance': numAmount },
+        // Ensure wallet exists with defaults if user has none (new users)
+        $setOnInsert: { 'wallet.currency': 'RWF' },
+      },
+      { new: true, upsert: false }
+    );
 
-      return { balance: Number(wallet.balance), transaction: txRecord };
-    });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // If wallet didn't exist yet, initialize it
+    if (!user.wallet) {
+      await User.updateOne(
+        { _id: payload.userId },
+        { $set: { wallet: { balance: numAmount, currency: 'RWF' } } }
+      );
+    }
+
+    const transactionRef = `TOPUP-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
 
     return NextResponse.json({
       message: 'Wallet credited successfully',
-      newBalance: result.balance,
-      transaction: result.transaction,
+      newBalance: user.wallet?.balance ?? numAmount,
+      transaction: {
+        reference: transactionRef,
+        amount: numAmount,
+        type: 'DEPOSIT',
+        description: `Self wallet top-up via ${method || 'Mobile Money'}`,
+      },
     });
   } catch (error: any) {
     console.error('Wallet topup error:', error);

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
 import { REGISTERABLE_ROLES } from '@/lib/types';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/lib/models/User';
 
 export async function POST(request: Request) {
   try {
@@ -20,8 +21,10 @@ export async function POST(request: Request) {
       );
     }
 
+    await connectToDatabase();
+
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
@@ -29,18 +32,14 @@ export async function POST(request: Request) {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user in DB with wallet and loyalty account
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        fullName,
-        role,
-        wallet: { create: { balance: 0, currency: 'RWF' } },
-        loyaltyAccount: {
-          create: { points: 0, badgeTier: 'Eco Novice', mealsRescued: 0, co2SavedKg: 0 },
-        },
-      },
+    // Create user with embedded wallet and loyalty account
+    const user = await User.create({
+      email,
+      passwordHash,
+      fullName,
+      role,
+      wallet: { balance: 0, currency: 'RWF' },
+      loyaltyAccount: { points: 0, badgeTier: 'Eco Novice', mealsRescued: 0, co2SavedKg: 0 },
     });
 
     // Generate JWT

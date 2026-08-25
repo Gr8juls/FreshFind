@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import connectToDatabase from '@/lib/mongodb';
+import Favorite from '@/lib/models/Favorite';
 
 export async function GET() {
   try {
@@ -16,10 +17,9 @@ export async function GET() {
       return NextResponse.json({ favorites: [] });
     }
 
-    const favorites = await prisma.favorite.findMany({
-      where: { userId: payload.userId },
-      select: { businessId: true },
-    });
+    await connectToDatabase();
+
+    const favorites = await Favorite.find({ userId: payload.userId }).select('businessId').lean();
 
     return NextResponse.json({ favorites: favorites.map((f) => f.businessId) });
   } catch (error: any) {
@@ -46,28 +46,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'businessId required' }, { status: 400 });
     }
 
+    await connectToDatabase();
+
     // Toggle favorite
-    const existing = await prisma.favorite.findUnique({
-      where: {
-        userId_businessId: {
-          userId: payload.userId,
-          businessId,
-        },
-      },
-    });
+    const existing = await Favorite.findOne({ userId: payload.userId, businessId });
 
     if (existing) {
-      await prisma.favorite.delete({
-        where: { id: existing.id },
-      });
+      await Favorite.deleteOne({ _id: existing._id });
       return NextResponse.json({ favorited: false, businessId });
     } else {
-      await prisma.favorite.create({
-        data: {
-          userId: payload.userId,
-          businessId,
-        },
-      });
+      await Favorite.create({ userId: payload.userId, businessId });
       return NextResponse.json({ favorited: true, businessId });
     }
   } catch (error: any) {

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/adminAuth';
+import connectToDatabase from '@/lib/mongodb';
+import Dispute from '@/lib/models/Dispute';
+import User from '@/lib/models/User';
 
 export async function PATCH(
   request: Request,
@@ -14,50 +16,36 @@ export async function PATCH(
     const body = await request.json();
     const { status, resolution, refundAmount, userId } = body;
 
-    const dispute = await prisma.dispute.findUnique({
-      where: { id },
-      include: { order: true },
-    });
+    await connectToDatabase();
+
+    const dispute = await Dispute.findById(id);
 
     if (!dispute) {
       return NextResponse.json({ error: 'Dispute not found' }, { status: 404 });
     }
 
-    const updatedDispute = await prisma.$transaction(async (tx) => {
-      // If refund is requested and amount > 0, credit user's wallet
-      const targetUserId = userId || dispute.userId;
-      if (status === 'RESOLVED' && typeof refundAmount === 'number' && refundAmount > 0) {
-        const wallet = await tx.userWallet.upsert({
-          where: { userId: targetUserId },
-          create: {
-            userId: targetUserId,
-            balance: refundAmount,
-            currency: 'RWF',
-          },
-          update: {
-            balance: { increment: refundAmount },
-          },
-        });
+    // If refund is requested, credit user's embedded wallet atomically
+    const targetUserId = userId || dispute.userId;
+    if (status === 'RESOLVED' && typeof refundAmount === 'number' && refundAmount > 0) {
+      await User.updateOne(
+        { _id: targetUserId },
+        {
+          $inc: { 'wallet.balance': refundAmount },
+          $setOnInsert: { 'wallet.currency': 'RWF' },
+        }
+      );
+    }
 
-        await tx.walletTransaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: refundAmount,
-            type: 'REFUND',
-            reference: `REFUND-DISPUTE-${dispute.id.slice(0, 8)}`,
-            description: `Dispute refund for Order #${dispute.order.orderNumber} resolved by ${payload?.email}`,
-          },
-        });
-      }
-
-      return await tx.dispute.update({
-        where: { id },
-        data: {
+    const updatedDispute = await Dispute.findByIdAndUpdate(
+      id,
+      {
+        $set: {
           status: status || dispute.status,
           resolution: resolution || dispute.resolution,
         },
-      });
-    });
+      },
+      { new: true }
+    );
 
     return NextResponse.json({
       message: 'Dispute updated successfully',

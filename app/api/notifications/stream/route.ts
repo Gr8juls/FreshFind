@@ -1,4 +1,5 @@
-import { prisma } from '@/lib/prisma';
+import connectToDatabase from '@/lib/mongodb';
+import Notification from '@/lib/models/Notification';
 import { verifyToken } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -24,11 +25,15 @@ export async function GET(request: Request) {
     if (token) {
       const payload = await verifyToken(token);
       if (payload) {
-        const dbNotifications = await prisma.notification.findMany({
-          where: { userId: payload.userId, isRead: false },
-          take: 5,
-          orderBy: { createdAt: 'desc' },
-        });
+        await connectToDatabase();
+
+        const dbNotifications = await Notification.find({
+          userId: payload.userId,
+          isRead: false,
+        })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .lean();
 
         for (const notif of dbNotifications) {
           writer.write(

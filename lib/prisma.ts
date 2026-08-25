@@ -1,11 +1,3 @@
-﻿import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ["query"],
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// This file is kept for backward-compatibility.
+// The app now uses MongoDB via Mongoose. Import from '@/lib/mongodb' instead.
+export { default as connectToDatabase } from './mongodb';
