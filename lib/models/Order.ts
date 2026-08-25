@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Model, models } from 'mongoose';
+import mongoose, { Document, Schema, Model, models, Types } from 'mongoose';
 
 // ─── Sub-schemas ────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ const EnvironmentalImpactSchema = new Schema(
 // ─── Order Document ──────────────────────────────────────────────────────────
 
 export interface IOrder extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   orderNumber: string;
   userId: string;
   status:
@@ -55,7 +55,7 @@ export interface IOrder extends Document {
   collectedAt?: Date;
   cancelledAt?: Date;
   items: {
-    _id: string;
+    _id: Types.ObjectId;
     offerId: string;
     quantity: number;
     unitPrice: number;

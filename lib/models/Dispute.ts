@@ -1,7 +1,7 @@
-import mongoose, { Document, Schema, Model, models } from 'mongoose';
+import mongoose, { Document, Schema, Model, models, Types } from 'mongoose';
 
 export interface IDispute extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   orderId: string;
   orderNumber?: string; // denormalized for quick display
   userId: string;

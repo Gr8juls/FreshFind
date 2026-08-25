@@ -1,7 +1,7 @@
-import mongoose, { Document, Schema, Model, models } from 'mongoose';
+import mongoose, { Document, Schema, Model, models, Types } from 'mongoose';
 
 export interface IOffer extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   businessId: string;
   categoryId?: string;
   categoryName?: string;

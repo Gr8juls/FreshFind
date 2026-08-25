@@ -1,4 +1,5 @@
-export type { UserRole } from './types'; // re-exported for backwards compat — define new code in lib/types.ts
+import type { UserRole } from './types';
+export type { UserRole };
 
 export interface Business {
   id: string;
@@ -32,7 +33,7 @@ export interface Offer {
   title: string;
   description: string;
   category: string;
-  bagType?: 'Surprise Pastry Bag' | 'Surprise Groceries Box' | 'Buffet Feast Box' | 'Vegan Surplus Bowl' | 'General Magic Bag';
+  bagType?: 'Surprise Pastry Bag' | 'Surprise Meal Box' | 'Surprise Groceries Box' | 'Buffet Feast Box' | 'Vegan Surplus Bowl' | 'General Magic Bag';
   guaranteedValue?: number;
   originalPrice: number;
   discountedPrice: number;

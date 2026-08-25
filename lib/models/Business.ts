@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Model, models } from 'mongoose';
+import mongoose, { Document, Schema, Model, models, Types } from 'mongoose';
 
 // ─── Embedded sub-schemas ───────────────────────────────────────────────────
 
@@ -18,7 +18,7 @@ const BusinessLocationSchema = new Schema(
 // ─── Business Document ──────────────────────────────────────────────────────
 
 export interface IBusiness extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   ownerId: string;
   name: string;
   slug: string;

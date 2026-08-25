@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, Model, models } from 'mongoose';
+import mongoose, { Document, Schema, Model, models, Types } from 'mongoose';
 
 // ─── Sub-schemas (embedded documents) ──────────────────────────────────────
 
@@ -24,7 +24,7 @@ const LoyaltyAccountSchema = new Schema(
 // ─── Main User Schema ───────────────────────────────────────────────────────
 
 export interface IUser extends Document {
-  _id: string;
+  _id: Types.ObjectId;
   email: string;
   passwordHash?: string;
   fullName: string;
@@ -37,12 +37,12 @@ export interface IUser extends Document {
   googleId?: string;
   appleId?: string;
   wallet?: {
-    _id: string;
+    _id: Types.ObjectId;
     balance: number;
     currency: string;
   };
   loyaltyAccount?: {
-    _id: string;
+    _id: Types.ObjectId;
     points: number;
     badgeTier: string;
     mealsRescued: number;
@@ -89,7 +89,7 @@ const UserSchema = new Schema<IUser>(
 
 // Expose _id as id
 UserSchema.virtual('id').get(function () {
-  return this._id.toHexString();
+  return this._id ? this._id.toString() : '';
 });
 
 const User: Model<IUser> = models.User || mongoose.model<IUser>('User', UserSchema);
