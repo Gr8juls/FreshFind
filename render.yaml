@@ -4,16 +4,14 @@ services:
     runtime: node
     plan: free
     region: frankfurt # or oregon, ohio, singapore
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=450"
       - key: MONGODB_URI
-        sync: false # Set securely in Render dashboard (e.g., from MongoDB Atlas)
+        sync: false # Set in Render dashboard (e.g., from MongoDB Atlas)
       - key: JWT_SECRET
         generateValue: true
-      - key: NEXTAUTH_SECRET
-        generateValue: true
-      - key: NEXTAUTH_URL
-        sync: false # Set to your Render service URL (e.g. https://freshfind-app.onrender.com)
