@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.0",

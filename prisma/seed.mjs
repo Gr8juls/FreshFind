@@ -178,4 +178,3 @@ main()
     await mongoose.disconnect();
     console.log('🔌 Disconnected cleanly from MongoDB Atlas');
   });
-
