@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // ESLint is handled separately; don't block production builds
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    // Type errors are caught via `tsc --noEmit` in CI; don't block builds
+    ignoreBuildErrors: false,
+  },
   images: {
     remotePatterns: [
       {
@@ -20,3 +28,4 @@ const nextConfig = {
 };
 
 export default nextConfig;
+

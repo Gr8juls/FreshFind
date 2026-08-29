@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
     "db:seed": "node --env-file=.env prisma/seed.mjs"
   },
   "dependencies": {

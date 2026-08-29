@@ -18,6 +18,8 @@ export interface Business {
   isVerified: boolean;
   status?: 'APPROVED' | 'PENDING_APPROVAL' | 'SUSPENDED';
   commissionRate?: number;
+  subscriptionTier?: 'FREE' | 'PRO' | 'ENTERPRISE';
+  subscriptionExpiresAt?: string;
   tinNumber?: string;
   payoutPhone?: string;
   lat?: number;
@@ -53,6 +55,41 @@ export interface Offer {
   isGlutenFree: boolean;
   aiDemandScore: number; // 0-100%
   aiPriceSuggestion: number;
+  isFeatured?: boolean;
+  featuredBadge?: string;
+  aiTags?: string[];
+  allergens?: string[];
+}
+
+export interface VendorSubscriptionPlan {
+  id: 'FREE' | 'PRO' | 'ENTERPRISE';
+  name: string;
+  badge: string;
+  priceMonthly: number; // RWF
+  commissionRate: number; // %
+  description: string;
+  features: string[];
+  isPopular?: boolean;
+}
+
+export interface NativeEcoAd {
+  id: string;
+  sponsorName: string;
+  title: string;
+  description: string;
+  ctaText: string;
+  ctaUrl: string;
+  tag: string;
+  imageUrl: string;
+}
+
+export interface AIRecommendation {
+  id: string;
+  offerId: string;
+  offer: Offer;
+  matchScore: number; // e.g. 98%
+  reason: string;
+  badge: string;
 }
 
 export interface Order {
@@ -106,7 +143,9 @@ export const INITIAL_BUSINESSES: Business[] = [
     openingHours: '07:00 - 20:00',
     isVerified: true,
     status: 'APPROVED',
-    commissionRate: 15,
+    commissionRate: 14,
+    subscriptionTier: 'PRO',
+    subscriptionExpiresAt: '2026-12-31',
     tinNumber: 'TIN-88291024',
     payoutPhone: '+250 788 123 456',
     lat: -1.9355,
@@ -281,6 +320,10 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: false,
     aiDemandScore: 94,
     aiPriceSuggestion: 4800,
+    isFeatured: true,
+    featuredBadge: '🔥 Flash Deal of the Day',
+    aiTags: ['Almond Croissant', 'French Baguette', 'Pain au Chocolat', 'Tarts'],
+    allergens: ['Gluten', 'Dairy', 'Nuts (Almonds)'],
   },
   {
     id: 'off-2',
@@ -699,4 +742,79 @@ export const INITIAL_SYSTEM_SETTINGS: SystemSettings = {
   smsNotificationsEnabled: true,
   auditLoggingEnabled: true,
 };
+
+export const VENDOR_SUBSCRIPTION_PLANS: VendorSubscriptionPlan[] = [
+  {
+    id: 'FREE',
+    name: 'Starter Partner',
+    badge: 'Standard',
+    priceMonthly: 0,
+    commissionRate: 22,
+    description: 'Perfect for small cafes and bakeries testing surplus food recovery.',
+    features: [
+      'Standard 22% marketplace commission',
+      'Manual offer listing builder',
+      'Standard QR code pickup scanner',
+      'Weekly automated payouts via MTN MoMo',
+      'Basic sales report',
+    ],
+  },
+  {
+    id: 'PRO',
+    name: 'FreshFind PRO',
+    badge: 'Most Popular 🔥',
+    priceMonthly: 25000,
+    commissionRate: 14,
+    description: 'For busy kitchens wanting zero effort and maximum recovered revenue.',
+    features: [
+      'Reduced 14% marketplace commission (Save 8% per meal!)',
+      'Unlimited AI Vision "Snap & List" photo creator',
+      'Smart 24/7 Vendor Copilot & Dynamic Markdown Advisor',
+      '1 Free Monthly "Featured Flash Drop" boost',
+      'Predictive Daily Surplus Demand Forecasting',
+      'Priority 24/7 WhatsApp & MoMo Payout Support',
+    ],
+    isPopular: true,
+  },
+  {
+    id: 'ENTERPRISE',
+    name: 'Zero-Waste Enterprise',
+    badge: 'Hotel & Chain Tier',
+    priceMonthly: 90000,
+    commissionRate: 10,
+    description: 'Designed for hotel chains, multi-branch supermarkets, and food franchises.',
+    features: [
+      'Lowest 10% marketplace commission rate',
+      'Multi-branch kitchen management & staff accounts',
+      'Automated POS & Inventory API integration',
+      'Official Certified ESG Carbon Credit & CO₂ impact audit reports',
+      'Dedicated Account Manager & customized marketing blasts',
+      'Unlimited Featured Drops & Priority Map Placement',
+    ],
+  },
+];
+
+export const INITIAL_NATIVE_ADS: NativeEcoAd[] = [
+  {
+    id: 'ad-1',
+    sponsorName: 'EcoPack Rwanda',
+    title: '100% Biodegradable Meal Containers',
+    description: 'Switch your kitchen to eco-friendly cassava starch boxes. 20% off for FreshFind merchants.',
+    ctaText: 'Get 20% Off Packaging',
+    ctaUrl: 'https://example.com/ecopack',
+    tag: 'Sponsored Partner',
+    imageUrl: 'https://images.pexels.com/photos/4110257/pexels-photo-4110257.jpeg?auto=compress&cs=tinysrgb&w=600',
+  },
+  {
+    id: 'ad-2',
+    sponsorName: 'Inyange Organic Juices',
+    title: 'Pair Your Rescued Meal with Cold-Pressed Juice',
+    description: 'Pure passion fruit and mango juices from local Rwandan farms. Grab one at pickup!',
+    ctaText: 'View Drink Flavors',
+    ctaUrl: 'https://example.com/inyange',
+    tag: 'Beverage Partner',
+    imageUrl: 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=600',
+  }
+];
+
 

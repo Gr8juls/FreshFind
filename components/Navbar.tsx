@@ -16,7 +16,8 @@ import {
   LogIn,
   User,
   ShieldCheck,
-  Store
+  Store,
+  Sparkles
 } from 'lucide-react';
 
 export function Navbar() {
@@ -31,7 +32,8 @@ export function Navbar() {
     cartQuantity,
     searchQuery, setSearchQuery,
     setIsCheckoutModalOpen,
-    setIsQRScannerModalOpen
+    setIsQRScannerModalOpen,
+    setIsChefModalOpen
   } = useApp();
 
   let activeRole = user.role || 'CUSTOMER';
@@ -119,9 +121,18 @@ export function Navbar() {
               </Link>
             )}
 
-            {/* Customer Cart & Wallet Controls */}
+            {/* Customer Cart, Chef Rescue & Wallet Controls */}
             {activeRole === 'CUSTOMER' && (
               <>
+                <button
+                  onClick={() => setIsChefModalOpen(true)}
+                  className="hidden sm:flex items-center space-x-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer shadow-sm"
+                  title="Chef Rescue AI Zero-Waste Recipe Assistant"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Chef Rescue AI</span>
+                </button>
+
                 <div className="hidden sm:flex items-center space-x-1.5 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300">
                   <Wallet className="w-3.5 h-3.5 text-brand-400" />
                   <span>{user.walletBalance.toLocaleString()} RWF</span>
@@ -129,7 +140,7 @@ export function Navbar() {
 
                 <button
                   onClick={() => setIsCheckoutModalOpen(true)}
-                  className="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition"
+                  className="relative p-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 transition cursor-pointer"
                 >
                   <ShoppingBag className="w-5 h-5 text-brand-400" />
                   {cartOffer && (

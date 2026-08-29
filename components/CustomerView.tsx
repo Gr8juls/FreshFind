@@ -6,6 +6,9 @@ import { Offer } from '@/lib/mockData';
 import dynamic from 'next/dynamic';
 import { OfferCard } from './OfferCard';
 import { MarketplaceMap } from './MarketplaceMap';
+import { AISmartSearchBar } from './AISmartSearchBar';
+import { NativeEcoAdBanner } from './NativeEcoAdBanner';
+import { AIChefRescueModal } from './AIChefRescueModal';
 
 const AIDemandForecastWidget = dynamic(
   () => import('./AIDemandForecastWidget').then((mod) => mod.AIDemandForecastWidget),
@@ -28,7 +31,10 @@ import {
   X,
   Clock,
   Bell,
-  EyeOff
+  EyeOff,
+  ChefHat,
+  Zap,
+  Flame
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -50,7 +56,9 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     setMaxDistanceKm,
     orders,
     favorites,
-    toggleFavorite
+    toggleFavorite,
+    setIsChefModalOpen,
+    setChefRescueOffer
   } = useApp();
 
   const [displayMode, setDisplayMode] = useState<'GRID' | 'MAP'>('GRID');
@@ -273,6 +281,100 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {activeTab === 'OFFERS' && (
         <div className="space-y-6">
           
+          {/* AI SMART SEARCH BAR */}
+          <AISmartSearchBar />
+
+          {/* AI RESCUE RADAR - PERSONALIZED RECOMMENDATIONS CAROUSEL */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="p-1.5 rounded-lg bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
+                  <Sparkles className="w-4 h-4 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-100 flex items-center space-x-2">
+                    <span>AI Rescue Radar™</span>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Personalized For You
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Predicted drops matching your taste, usual commute radius, and peak 6–8 PM pickup habits.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[11px] font-mono text-emerald-400 font-bold hidden sm:inline-block">
+                ⚡ 96% Affinity Score
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {offers.slice(0, 3).map((offer, idx) => (
+                <div
+                  key={'rec-' + offer.id}
+                  onClick={() => onSelectOffer(offer)}
+                  className="group relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/60 transition cursor-pointer shadow-lg space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {idx === 0 ? '🥐 Top Bakery Match' : idx === 1 ? '☕ Afternoon Grab & Go' : '🍲 Dinner Feast Match'}
+                    </span>
+                    <span className="text-[10px] font-mono text-amber-400 font-bold">
+                      {98 - idx * 3}% Match
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <img src={offer.imageUrl} alt={offer.title} className="w-12 h-12 rounded-xl object-cover border border-slate-700" />
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-slate-100 truncate group-hover:text-emerald-400 transition">
+                        {offer.title}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 truncate">{offer.businessName}</p>
+                      <div className="flex items-baseline space-x-1.5 mt-0.5">
+                        <span className="text-xs font-black text-emerald-400">{offer.discountedPrice.toLocaleString()} RWF</span>
+                        <span className="text-[10px] text-slate-500 line-through">{offer.originalPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 italic bg-slate-950/80 p-1.5 rounded-lg border border-slate-800/80">
+                    💡 {idx === 0 ? 'Saved 4.9★ rating from 128 neighbors near Nyarutarama.' : idx === 1 ? 'High-protein grab-and-go option before closing time.' : 'Generous 3.3x guaranteed value meal tray.'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CHEF RESCUE AI RECIPE BANNER */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 p-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <ChefHat className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-sm font-black text-slate-100">&ldquo;Chef Rescue&rdquo; Zero-Waste AI Cooking Assistant</h4>
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      Free Feature
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    Turn your collected surprise bags and bakery loaves into 15-minute gourmet dishes with zero food waste.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChefModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center space-x-1.5 transition cursor-pointer self-start sm:self-auto shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Open Chef Rescue</span>
+              </button>
+            </div>
+          </div>
+
           {/* CATEGORIES & TGTG FILTER BAR */}
           <div className="space-y-4">
             
@@ -407,6 +509,9 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
           {/* AI Demand Forecast Intelligence Widget */}
           <AIDemandForecastWidget offers={offers} onSelectOffer={onSelectOffer} />
 
+          {/* NATIVE CONTEXTUAL ECO AD BANNER */}
+          <NativeEcoAdBanner adIndex={0} />
+
           {/* OFFERS DISPLAY GRID */}
           {displayMode === 'GRID' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -428,13 +533,16 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               setMaxDistanceKm={setMaxDistanceKm}
             />
           )}
+
+          {/* Modals */}
+          <AIChefRescueModal />
         </div>
       )}
 
       {/* ORDERS TAB CONTENT */}
       {activeTab === 'ORDERS' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-100">Your Active & Past Food Pickups</h2>
+          <h2 className="text-lg font-bold text-slate-100">Your Active &amp; Past Food Pickups</h2>
           {orders.length === 0 ? (
             <div className="p-8 text-center bg-slate-900/50 rounded-2xl border border-slate-800">
               <p className="text-sm text-slate-400">No orders placed yet. Explore surprise boxes to rescue food!</p>
@@ -457,6 +565,18 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                   </div>
                   
                   <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => {
+                        const matchedOffer = offers.find(o => o.id === order.offerId);
+                        if (matchedOffer) setChefRescueOffer(matchedOffer);
+                        setIsChefModalOpen(true);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
+                    >
+                      <ChefHat className="w-3.5 h-3.5" />
+                      <span>Cook with AI Chef</span>
+                    </button>
+
                     <div className="text-right">
                       <p className="text-xs font-extrabold text-slate-100">{order.totalPrice.toLocaleString()} RWF</p>
                       <p className="text-[10px] text-slate-400 font-mono">{order.qrToken}</p>

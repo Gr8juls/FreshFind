@@ -83,6 +83,18 @@ interface AppContextType {
   clearCart: () => void;
   checkoutOrder: (paymentMethod: 'STRIPE_CARD' | 'MTN_MOMO' | 'AIRTEL_MONEY' | 'WALLET', momoNumber?: string) => Promise<Order>;
   
+  // AI & Monetization Modals
+  isChefModalOpen: boolean;
+  setIsChefModalOpen: (isOpen: boolean) => void;
+  chefRescueOffer: Offer | null;
+  setChefRescueOffer: (offer: Offer | null) => void;
+  isVendorAssistantModalOpen: boolean;
+  setIsVendorAssistantModalOpen: (isOpen: boolean) => void;
+  isSubscriptionModalOpen: boolean;
+  setIsSubscriptionModalOpen: (isOpen: boolean) => void;
+  isSnapListModalOpen: boolean;
+  setIsSnapListModalOpen: (isOpen: boolean) => void;
+
   // Actions
   toggleFavorite: (businessId: string) => Promise<void>;
   verifyAndCollectQR: (qrToken: string) => Promise<{ success: boolean; message: string; order?: Order }>;
@@ -90,6 +102,9 @@ interface AppContextType {
   quickAdjustOfferStock: (offerId: string, delta: number) => void;
   cancelOfferAndRefund: (offerId: string) => Promise<void>;
   addWalletBalance: (amount: number) => Promise<void>;
+  applyDynamicMarkdown: (offerId: string, newPrice: number) => void;
+  upgradeBusinessSubscription: (businessId: string, tier: 'FREE' | 'PRO' | 'ENTERPRISE') => Promise<void>;
+  boostOfferAsFeatured: (offerId: string, badge?: string) => Promise<void>;
 
   // Admin Super-Rights Actions
   approveBusiness: (businessId: string) => Promise<void>;
@@ -113,6 +128,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [viewFrame, setViewFrame] = useState<ViewFrame>('DESKTOP');
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isQRScannerModalOpen, setIsQRScannerModalOpen] = useState(false);
+  const [isChefModalOpen, setIsChefModalOpen] = useState(false);
+  const [chefRescueOffer, setChefRescueOffer] = useState<Offer | null>(null);
+  const [isVendorAssistantModalOpen, setIsVendorAssistantModalOpen] = useState(false);
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false);
+  const [isSnapListModalOpen, setIsSnapListModalOpen] = useState(false);
   
   const [user, setUser] = useState<UserProfile>(INITIAL_USER);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -644,12 +664,63 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const applyDynamicMarkdown = (offerId: string, newPrice: number) => {
+    setOffers(prev => prev.map(o => {
+      if (o.id === offerId) {
+        return {
+          ...o,
+          discountedPrice: newPrice,
+          aiPriceSuggestion: newPrice,
+          aiDemandScore: Math.min(99, o.aiDemandScore + 6),
+        };
+      }
+      return o;
+    }));
+    addAuditLog(`DYNAMIC_MARKDOWN_APPLIED_${newPrice}RWF`, offerId, 'SECURITY', 'INFO');
+  };
+
+  const upgradeBusinessSubscription = async (businessId: string, tier: 'FREE' | 'PRO' | 'ENTERPRISE') => {
+    const commissionRates = { FREE: 22, PRO: 14, ENTERPRISE: 10 };
+    setBusinesses(prev => prev.map(b => {
+      if (b.id === businessId) {
+        return {
+          ...b,
+          subscriptionTier: tier,
+          commissionRate: commissionRates[tier],
+          subscriptionExpiresAt: '2026-12-31',
+        };
+      }
+      return b;
+    }));
+    addAuditLog(`SUBSCRIPTION_UPGRADED_${tier}`, businessId, 'RBAC', 'INFO');
+  };
+
+  const boostOfferAsFeatured = async (offerId: string, badge = '🔥 Featured Flash Drop') => {
+    setOffers(prev => prev.map(o => {
+      if (o.id === offerId) {
+        return {
+          ...o,
+          isFeatured: true,
+          featuredBadge: badge,
+          aiDemandScore: 98,
+        };
+      }
+      return o;
+    }));
+    addAuditLog('OFFER_BOOSTED_FEATURED', offerId, 'APPROVAL', 'INFO');
+  };
+
   return (
     <AppContext.Provider value={{
       role, setRole,
       viewFrame, setViewFrame,
       isCheckoutModalOpen, setIsCheckoutModalOpen,
       isQRScannerModalOpen, setIsQRScannerModalOpen,
+      isChefModalOpen, setIsChefModalOpen,
+      chefRescueOffer, setChefRescueOffer,
+      isVendorAssistantModalOpen, setIsVendorAssistantModalOpen,
+      isSubscriptionModalOpen, setIsSubscriptionModalOpen,
+      isSnapListModalOpen, setIsSnapListModalOpen,
       user, setUser,
       isAuthenticated, isLoadingSession, fetchSession, logout,
       offers, businesses, orders, favorites,
@@ -660,6 +731,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       maxDistanceKm, setMaxDistanceKm,
       cartOffer, cartQuantity, setCartQuantity, addToCart, clearCart, checkoutOrder,
       toggleFavorite, verifyAndCollectQR, createMerchantOffer, quickAdjustOfferStock, cancelOfferAndRefund, addWalletBalance,
+      applyDynamicMarkdown, upgradeBusinessSubscription, boostOfferAsFeatured,
       approveBusiness, suspendBusiness, reactivateBusiness, updateBusinessCommission,
       updateUserRole, updateUserStatus, creditUserWallet, resolveDispute,
       deleteOfferByAdmin, processMerchantPayout, updateSystemSettings, addAuditLog

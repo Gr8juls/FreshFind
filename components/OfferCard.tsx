@@ -11,7 +11,7 @@ interface OfferCardProps {
 }
 
 export function OfferCard({ offer, onSelect }: OfferCardProps) {
-  const { favorites, toggleFavorite } = useApp();
+  const { favorites, toggleFavorite, setIsChefModalOpen, setChefRescueOffer } = useApp();
   const [imageError, setImageError] = useState(false);
   const isFav = favorites.includes(offer.businessId);
 
@@ -32,10 +32,22 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
   };
 
   return (
-    <div className={`group relative glass-card rounded-2xl overflow-hidden border transition-all duration-300 flex flex-col ${
-      isSoldOut ? 'border-slate-800/60 opacity-85' : 'border-slate-800 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10'
+    <div className={`group relative glass-card rounded-3xl overflow-hidden border transition-all duration-300 flex flex-col ${
+      offer.isFeatured
+        ? 'border-orange-500/80 shadow-xl shadow-orange-500/10 ring-1 ring-orange-500/50'
+        : isSoldOut
+        ? 'border-slate-800/60 opacity-85'
+        : 'border-slate-800 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10'
     }`}>
       
+      {/* Featured Drop Banner */}
+      {offer.isFeatured && (
+        <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 text-slate-950 text-[10px] font-black uppercase tracking-wider py-1 px-3 text-center flex items-center justify-center space-x-1 shadow-md">
+          <Flame className="w-3 h-3 fill-slate-950" />
+          <span>{offer.featuredBadge || '🔥 Flash Deal of the Day (Sponsored)'}</span>
+        </div>
+      )}
+
       {/* Image / Fallback Container */}
       <div className="relative h-48 w-full overflow-hidden bg-slate-950 flex items-center justify-center">
         {!imageError && offer.imageUrl ? (
@@ -83,16 +95,30 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
           )}
         </div>
 
-        {/* Favorite Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleFavorite(offer.businessId);
-          }}
-          className="absolute top-3 right-3 z-10 p-2 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/80 text-slate-300 hover:text-rose-400 transition cursor-pointer"
-        >
-          <Heart className={`w-4 h-4 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-slate-300'}`} />
-        </button>
+        {/* Action icons right (Favorite & AI Chef) */}
+        <div className="absolute top-3 right-3 z-10 flex items-center space-x-1.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setChefRescueOffer(offer);
+              setIsChefModalOpen(true);
+            }}
+            title="Cook with AI Chef"
+            className="p-2 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-amber-400 hover:text-amber-300 hover:bg-slate-800 transition cursor-pointer shadow-md"
+          >
+            <Sparkles className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleFavorite(offer.businessId);
+            }}
+            className="p-2 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-slate-300 hover:text-rose-400 transition cursor-pointer shadow-md"
+          >
+            <Heart className={`w-4 h-4 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-slate-300'}`} />
+          </button>
+        </div>
 
         {/* Distance & Pickup Time overlay */}
         <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between text-xs text-slate-300 font-medium">

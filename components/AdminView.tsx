@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { UserRole } from '@/lib/store';
 
-type AdminTab = 'STORES' | 'USERS' | 'DISPUTES' | 'CATALOG' | 'PAYOUTS' | 'SETTINGS_LOGS';
+type AdminTab = 'STORES' | 'USERS' | 'DISPUTES' | 'CATALOG' | 'PAYOUTS' | 'MONETIZATION' | 'SETTINGS_LOGS';
 
 export function AdminView() {
   const { 
@@ -298,6 +298,18 @@ export function AdminView() {
         </button>
 
         <button
+          onClick={() => setActiveTab('MONETIZATION')}
+          className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+            activeTab === 'MONETIZATION' 
+              ? 'bg-brand-500 text-slate-950 shadow-lg shadow-brand-500/20' 
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+          }`}
+        >
+          <DollarSign className="w-4 h-4 text-emerald-400" />
+          <span>Monetization &amp; Subscriptions</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('SETTINGS_LOGS')}
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'SETTINGS_LOGS' 
@@ -306,7 +318,7 @@ export function AdminView() {
           }`}
         >
           <Sliders className="w-4 h-4" />
-          <span>Settings & Audit Trail ({auditLogs.length})</span>
+          <span>Settings &amp; Audit Trail ({auditLogs.length})</span>
         </button>
       </div>
 
@@ -830,6 +842,120 @@ export function AdminView() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* ================= TAB: MONETIZATION & SUBSCRIPTIONS ================= */}
+      {activeTab === 'MONETIZATION' && (
+        <div className="space-y-6">
+          
+          {/* Revenue Stream Matrix Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 font-medium">Surprise Bag GMV</span>
+              <p className="text-2xl font-black text-amber-400">{(totalGMV / 1000000).toFixed(2)}M RWF</p>
+              <span className="text-[10px] text-slate-500">Gross marketplace sales</span>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 font-medium">Transaction Commissions</span>
+              <p className="text-2xl font-black text-emerald-400">1,280,000 RWF</p>
+              <span className="text-[10px] text-emerald-400 font-semibold">14–22% take rate</span>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 font-medium">Vendor Subscriptions MRR</span>
+              <p className="text-2xl font-black text-teal-400">340,000 RWF</p>
+              <span className="text-[10px] text-teal-400 font-semibold">12 PRO / 2 Enterprise</span>
+            </div>
+
+            <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-1">
+              <span className="text-xs text-slate-400 font-medium">Featured Drops &amp; Ads</span>
+              <p className="text-2xl font-black text-indigo-400">145,000 RWF</p>
+              <span className="text-[10px] text-indigo-300">Sponsored boosts &amp; banners</span>
+            </div>
+          </div>
+
+          {/* Merchant Subscription Governance Table */}
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-100">Merchant Subscription Tiers &amp; Fee Overrides</h3>
+                <p className="text-xs text-slate-400">Audit which stores have active PRO / Enterprise plans and modify commission take rates.</p>
+              </div>
+              <span className="text-xs font-mono text-emerald-400 font-bold">{businesses.length} partner stores</span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-950 text-slate-400 font-semibold uppercase tracking-wider">
+                  <tr>
+                    <th className="p-3.5 rounded-l-xl">Merchant Partner</th>
+                    <th className="p-3.5">Active Plan</th>
+                    <th className="p-3.5">Commission Rate</th>
+                    <th className="p-3.5">Monthly Fee</th>
+                    <th className="p-3.5">AI Tools Status</th>
+                    <th className="p-3.5 rounded-r-xl text-right">Quick Tier Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80">
+                  {businesses.map(b => (
+                    <tr key={b.id} className="hover:bg-slate-800/40 transition">
+                      <td className="p-3.5 flex items-center space-x-3">
+                        <img src={b.logoUrl} alt={b.name} className="w-9 h-9 rounded-xl object-cover border border-slate-700" />
+                        <div>
+                          <p className="font-bold text-slate-100">{b.name}</p>
+                          <p className="text-[10px] text-slate-400">{b.category} • {b.district}</p>
+                        </div>
+                      </td>
+                      
+                      <td className="p-3.5">
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                          b.subscriptionTier === 'ENTERPRISE'
+                            ? 'bg-purple-950 text-purple-300 border border-purple-800'
+                            : b.subscriptionTier === 'PRO'
+                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                            : 'bg-slate-900 text-slate-400 border border-slate-800'
+                        }`}>
+                          {b.subscriptionTier || 'FREE / STARTER'}
+                        </span>
+                      </td>
+
+                      <td className="p-3.5 font-bold text-emerald-400">
+                        {b.commissionRate || 15}%
+                      </td>
+
+                      <td className="p-3.5 text-slate-300 font-mono">
+                        {b.subscriptionTier === 'ENTERPRISE' ? '90,000 RWF' : b.subscriptionTier === 'PRO' ? '25,000 RWF' : '0 RWF'}
+                      </td>
+
+                      <td className="p-3.5">
+                        <span className="text-emerald-400 font-bold text-[11px] flex items-center space-x-1">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>AI Vision &amp; Copilot Active</span>
+                        </span>
+                      </td>
+
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end space-x-1.5">
+                          <button
+                            onClick={() => {
+                              updateBusinessCommission(b.id, (b.commissionRate || 15) - 2);
+                              showToast(`Reduced commission for ${b.name} to ${(b.commissionRate || 15) - 2}%`);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold transition cursor-pointer"
+                          >
+                            -2% Promo
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       )}
 
