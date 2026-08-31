@@ -6,14 +6,9 @@ import { Offer } from '@/lib/mockData';
 import dynamic from 'next/dynamic';
 import { OfferCard } from './OfferCard';
 import { MarketplaceMap } from './MarketplaceMap';
-import { AISmartSearchBar } from './AISmartSearchBar';
-import { NativeEcoAdBanner } from './NativeEcoAdBanner';
 import { AIChefRescueModal } from './AIChefRescueModal';
+import LoyaltyDashboard from './LoyaltyDashboard';
 
-const AIDemandForecastWidget = dynamic(
-  () => import('./AIDemandForecastWidget').then((mod) => mod.AIDemandForecastWidget),
-  { ssr: false, loading: () => <div className="h-44 rounded-3xl bg-slate-900/50 border border-slate-800 animate-pulse" /> }
-);
 import { 
   MapPin, 
   SlidersHorizontal, 
@@ -26,15 +21,14 @@ import {
   Globe,
   Sparkles,
   Star,
-  Camera,
   CheckCircle2,
   X,
   Clock,
   Bell,
   EyeOff,
   ChefHat,
-  Zap,
-  Flame
+  RotateCcw,
+  Award
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -56,7 +50,6 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     setMaxDistanceKm,
     orders,
     favorites,
-    toggleFavorite,
     setIsChefModalOpen,
     setChefRescueOffer
   } = useApp();
@@ -66,15 +59,11 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [language, setLanguage] = useState<'EN' | 'FR' | 'RW'>('EN');
   
-  // TGTG Specific filters
+  // Filtering states
   const [timingFilter, setTimingFilter] = useState<'ALL' | 'TODAY' | 'TOMORROW'>('ALL');
   const [hideSoldOut, setHideSoldOut] = useState(false);
 
   // Review modal state
-  const [reviewOrder, setReviewOrder] = useState<any | null>(null);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [freshnessScore, setFreshnessScore] = useState<'EXCELLENT' | 'FRESH' | 'AVERAGE'>('EXCELLENT');
-  const [reviewComment, setReviewComment] = useState('');
   const [reviewSuccessToast, setReviewSuccessToast] = useState(false);
 
   // Filter logic
@@ -112,49 +101,69 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     return true;
   });
 
-  const CATEGORIES = ['All', 'Bakery', 'Supermarket', 'Restaurant', 'Hotel', 'Cafe'];
+  const CATEGORIES = [
+    { name: 'All', icon: '⚡' },
+    { name: 'Bakery', icon: '🥐' },
+    { name: 'Cafe', icon: '☕' },
+    { name: 'Restaurant', icon: '🍲' },
+    { name: 'Supermarket', icon: '🛒' },
+    { name: 'Hotel', icon: '🏨' },
+  ];
+
+  // Active filters count
+  const hasActiveFilters = 
+    selectedCategory !== 'All' || 
+    timingFilter !== 'ALL' || 
+    hideSoldOut || 
+    searchQuery.trim() !== '' || 
+    filterDietary.vegetarian || 
+    filterDietary.vegan || 
+    filterDietary.halal || 
+    filterDietary.glutenFree || 
+    maxDistanceKm < 10;
+
+  const resetAllFilters = () => {
+    setSelectedCategory('All');
+    setTimingFilter('ALL');
+    setHideSoldOut(false);
+    setSearchQuery('');
+    setFilterDietary({ vegetarian: false, vegan: false, halal: false, glutenFree: false });
+    setMaxDistanceKm(10);
+  };
 
   // Check if any favorited store has active bags
   const favoriteActiveBags = offers.filter(o => favorites.includes(o.businessId) && o.quantityAvailable > 0);
 
-  const submitReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    setReviewOrder(null);
-    setReviewComment('');
-    setReviewSuccessToast(true);
-    setTimeout(() => setReviewSuccessToast(false), 4000);
-  };
-
   return (
-    <div className="space-y-8 pb-16 font-sans">
+    <div className="space-y-6 pb-16 font-sans">
       
-      {/* Review Toast */}
+      {/* Review Success Toast */}
       {reviewSuccessToast && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 animate-in fade-in">
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 dark:bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 animate-in fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-          <span className="text-xs font-semibold">Thank you for rating food freshness & supporting Kigali artisans!</span>
+          <span className="text-xs font-semibold">Thank you for rating food freshness &amp; supporting Kigali artisans!</span>
         </div>
       )}
 
-      {/* HERO BANNER & USER IMPACT TRACKER */}
-      <div className="relative rounded-3xl overflow-hidden glass-panel border border-slate-800 p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-eco-card to-slate-950">
+      {/* HERO BANNER & INTRO */}
+      <div className="relative rounded-3xl overflow-hidden glass-panel border border-slate-200 dark:border-slate-800 p-6 sm:p-7 bg-gradient-to-r from-white via-emerald-50/40 to-slate-50 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 transition-colors duration-200">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           
-          <div className="space-y-3 max-w-xl">
-            <div className="flex items-center space-x-2">
-              <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold text-emerald-400">
+          <div className="space-y-2.5 max-w-xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/30 px-3 py-0.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Chef&apos;s Mystery Bags • Guaranteed 3x Minimum Value</span>
+                <span>Surprise Bags • 3x Guaranteed Value</span>
               </div>
 
-              {/* Language Switcher Pill */}
-              <div className="flex items-center bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-300 space-x-1">
-                <Globe className="w-3 h-3 text-emerald-400" />
+              {/* Language Switcher */}
+              <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-300 space-x-1">
+                <Globe className="w-3 h-3 text-emerald-500" />
                 {(['EN', 'FR', 'RW'] as const).map(lang => (
                   <button
                     key={lang}
                     onClick={() => setLanguage(lang)}
-                    className={`px-1.5 py-0.5 rounded cursor-pointer ${language === lang ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+                    className={`px-1.5 py-0.5 rounded cursor-pointer transition ${language === lang ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                   >
                     {lang}
                   </button>
@@ -162,50 +171,50 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-black text-slate-100 tracking-tight leading-tight">
-              Rescue Delicious Surprise Bags from Kigali&apos;s Top Kitchens.
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
+              Rescue Delicious Food Bags in Kigali • Up to 70% Off
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300">
-              Pay 1/3 of the regular price. Pick up surplus bakery boxes, restaurant buffets, and groceries before closing time.
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+              Pay 1/3 of regular prices. Collect bakery treats, restaurant buffets, and groceries before closing time.
             </p>
           </div>
 
-          {/* Environmental Impact Metrics Badge */}
-          <div className="grid grid-cols-3 gap-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+          {/* Environmental Impact Quick Metrics */}
+          <div className="grid grid-cols-3 gap-3 bg-white/80 dark:bg-slate-950/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-md">
             <div className="text-center">
-              <div className="text-lg sm:text-xl font-black text-emerald-400">{user.mealsRescued}</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Bags Rescued</div>
+              <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">{user.mealsRescued}</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Bags Rescued</div>
             </div>
-            <div className="text-center border-x border-slate-800 px-2">
-              <div className="text-lg sm:text-xl font-black text-teal-400">{user.co2SavedKg} kg</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">CO₂ Prevented</div>
+            <div className="text-center border-x border-slate-200 dark:border-slate-800 px-2">
+              <div className="text-base sm:text-lg font-black text-teal-600 dark:text-teal-400">{user.co2SavedKg} kg</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">CO₂ Avoided</div>
             </div>
             <div className="text-center">
-              <div className="text-lg sm:text-xl font-black text-amber-400">{user.badgeTier || 'Eco Champion 🌿'}</div>
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Tier Badge</div>
+              <div className="text-base sm:text-lg font-black text-amber-500 dark:text-amber-400">480 pts</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Eco Points</div>
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* Favorite Store Drop Alert Banner if any */}
+      {/* Favorite Store Drop Alert Banner (if available) */}
       {favoriteActiveBags.length > 0 && (
-        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/50 to-slate-900 border border-emerald-500/40 flex items-center justify-between gap-4">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-slate-900 border border-emerald-200 dark:border-emerald-500/40 flex items-center justify-between gap-4 transition-colors">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-400">
+            <div className="p-2 bg-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400">
               <Bell className="w-5 h-5 animate-bounce" />
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-100">
-                ⚡ Favorite Alert: <span className="text-emerald-400">{favoriteActiveBags[0].businessName}</span> has {favoriteActiveBags[0].quantityAvailable} surprise bags available!
+              <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                ⚡ Favorite Alert: <span className="text-emerald-600 dark:text-emerald-400">{favoriteActiveBags[0].businessName}</span> has {favoriteActiveBags[0].quantityAvailable} surprise bags available!
               </p>
-              <p className="text-[10px] text-slate-400">Collect today between {favoriteActiveBags[0].pickupStart} - {favoriteActiveBags[0].pickupEnd}</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Collect today between {favoriteActiveBags[0].pickupStart} - {favoriteActiveBags[0].pickupEnd}</p>
             </div>
           </div>
           <button
             onClick={() => onSelectOffer(favoriteActiveBags[0])}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition cursor-pointer"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow transition cursor-pointer shrink-0"
           >
             Quick Grab
           </button>
@@ -213,52 +222,64 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       )}
 
       {/* NAVIGATION TABS */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-4 overflow-x-auto">
-        <div className="flex space-x-2">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 overflow-x-auto gap-2">
+        <div className="flex space-x-2 shrink-0">
           <button
             onClick={() => setActiveTab('OFFERS')}
             className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
               activeTab === 'OFFERS'
-                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Surprise Magic Bags ({filteredOffers.length})</span>
+            <span>Surprise Bags ({filteredOffers.length})</span>
           </button>
           
           <button
             onClick={() => setActiveTab('ORDERS')}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition relative cursor-pointer ${
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
               activeTab === 'ORDERS'
-                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <PackageCheck className="w-3.5 h-3.5" />
-            <span>My Pickup Orders ({orders.length})</span>
+            <span>My Orders ({orders.length})</span>
           </button>
           
           <button
             onClick={() => setActiveTab('FAVORITES')}
             className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
               activeTab === 'FAVORITES'
-                ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800'
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
-            <span>Favorited Stores ({favorites.length})</span>
+            <span>Favorites ({favorites.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('IMPACT')}
+            className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-extrabold transition cursor-pointer ${
+              activeTab === 'IMPACT'
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Eco Impact</span>
           </button>
         </div>
 
         {/* View Mode Toggle: Grid vs Interactive Map */}
         {activeTab === 'OFFERS' && (
-          <div className="hidden sm:flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+          <div className="hidden sm:flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-xl border border-slate-200 dark:border-slate-800 shrink-0">
             <button
               onClick={() => setDisplayMode('GRID')}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                displayMode === 'GRID' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+                displayMode === 'GRID' ? 'bg-emerald-500 text-slate-950' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <Grid className="w-3.5 h-3.5" />
@@ -267,11 +288,11 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             <button
               onClick={() => setDisplayMode('MAP')}
               className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                displayMode === 'MAP' ? 'bg-emerald-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+                displayMode === 'MAP' ? 'bg-emerald-500 text-slate-950' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <MapIcon className="w-3.5 h-3.5" />
-              <span>Kigali Map</span>
+              <span>Map</span>
             </button>
           </div>
         )}
@@ -281,216 +302,134 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {activeTab === 'OFFERS' && (
         <div className="space-y-6">
           
-          {/* AI SMART SEARCH BAR */}
-          <AISmartSearchBar />
-
-          {/* AI RESCUE RADAR - PERSONALIZED RECOMMENDATIONS CAROUSEL */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="p-1.5 rounded-lg bg-gradient-to-tr from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30">
-                  <Sparkles className="w-4 h-4 animate-pulse" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-100 flex items-center space-x-2">
-                    <span>AI Rescue Radar™</span>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                      Personalized For You
-                    </span>
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Predicted drops matching your taste, usual commute radius, and peak 6–8 PM pickup habits.
-                  </p>
-                </div>
-              </div>
-              <span className="text-[11px] font-mono text-emerald-400 font-bold hidden sm:inline-block">
-                ⚡ 96% Affinity Score
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {offers.slice(0, 3).map((offer, idx) => (
-                <div
-                  key={'rec-' + offer.id}
-                  onClick={() => onSelectOffer(offer)}
-                  className="group relative bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 p-4 rounded-2xl border border-slate-800 hover:border-emerald-500/60 transition cursor-pointer shadow-lg space-y-2.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      {idx === 0 ? '🥐 Top Bakery Match' : idx === 1 ? '☕ Afternoon Grab & Go' : '🍲 Dinner Feast Match'}
-                    </span>
-                    <span className="text-[10px] font-mono text-amber-400 font-bold">
-                      {98 - idx * 3}% Match
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <img src={offer.imageUrl} alt={offer.title} className="w-12 h-12 rounded-xl object-cover border border-slate-700" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-slate-100 truncate group-hover:text-emerald-400 transition">
-                        {offer.title}
-                      </h4>
-                      <p className="text-[10px] text-slate-400 truncate">{offer.businessName}</p>
-                      <div className="flex items-baseline space-x-1.5 mt-0.5">
-                        <span className="text-xs font-black text-emerald-400">{offer.discountedPrice.toLocaleString()} RWF</span>
-                        <span className="text-[10px] text-slate-500 line-through">{offer.originalPrice.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-[10px] text-slate-400 italic bg-slate-950/80 p-1.5 rounded-lg border border-slate-800/80">
-                    💡 {idx === 0 ? 'Saved 4.9★ rating from 128 neighbors near Nyarutarama.' : idx === 1 ? 'High-protein grab-and-go option before closing time.' : 'Generous 3.3x guaranteed value meal tray.'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CHEF RESCUE AI RECIPE BANNER */}
-          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 p-5 shadow-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center space-x-3.5">
-                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  <ChefHat className="w-6 h-6 animate-pulse" />
-                </div>
-                <div className="space-y-0.5">
-                  <div className="flex items-center space-x-2">
-                    <h4 className="text-sm font-black text-slate-100">&ldquo;Chef Rescue&rdquo; Zero-Waste AI Cooking Assistant</h4>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                      Free Feature
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    Turn your collected surprise bags and bakery loaves into 15-minute gourmet dishes with zero food waste.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsChefModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center space-x-1.5 transition cursor-pointer self-start sm:self-auto shrink-0"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Open Chef Rescue</span>
-              </button>
-            </div>
-          </div>
-
-          {/* CATEGORIES & TGTG FILTER BAR */}
-          <div className="space-y-4">
+          {/* UNIFIED FILTER TOOLBAR */}
+          <div className="space-y-3 bg-white/70 dark:bg-slate-900/60 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
             
-            {/* Row 1: Collection Timing Pills (Today vs Tomorrow) & Hide Sold Out */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-2.5 rounded-2xl border border-slate-800">
-              <div className="flex items-center space-x-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-2">Collection:</span>
-                <button
-                  onClick={() => setTimingFilter('ALL')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    timingFilter === 'ALL' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  All Times
-                </button>
-                <button
-                  onClick={() => setTimingFilter('TODAY')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    timingFilter === 'TODAY' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  🟢 Collect Today
-                </button>
-                <button
-                  onClick={() => setTimingFilter('TOMORROW')}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                    timingFilter === 'TOMORROW' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  ⏳ Collect Tomorrow
-                </button>
-              </div>
-
-              {/* Hide Sold Out Toggle */}
-              <button
-                onClick={() => setHideSoldOut(!hideSoldOut)}
-                className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-bold transition border cursor-pointer ${
-                  hideSoldOut 
-                    ? 'bg-emerald-950 text-emerald-400 border-emerald-500/50' 
-                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
-                }`}
-              >
-                <EyeOff className="w-3.5 h-3.5" />
-                <span>{hideSoldOut ? 'Hiding Sold Out' : 'Hide Sold Out'}</span>
-              </button>
-            </div>
-
-            {/* Row 2: Categories */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none">
+            {/* Row 1: Categories Bar */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none flex-1">
                 {CATEGORIES.map(cat => (
                   <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                      selectedCategory === cat
-                        ? 'bg-slate-100 text-slate-950 shadow-md'
-                        : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
+                    key={cat.name}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`flex items-center space-x-1 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                      selectedCategory === cat.name
+                        ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950 shadow-md'
+                        : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
-                    {cat}
+                    <span>{cat.icon}</span>
+                    <span>{cat.name}</span>
                   </button>
                 ))}
               </div>
 
-              {/* Filter Drawer Toggle */}
+              {/* Filters Drawer Toggle */}
               <button
                 onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition cursor-pointer ${
-                  showFilterDrawer 
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
-                    : 'bg-slate-900 text-slate-300 border-slate-800 hover:border-slate-700'
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition cursor-pointer shrink-0 ${
+                  showFilterDrawer || hasActiveFilters
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/40' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 <span>Filters</span>
+                {hasActiveFilters && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                )}
               </button>
             </div>
 
-            {/* Filter Drawer Matrix */}
+            {/* Row 2: Timing & Quick Toggles */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Timing:</span>
+                <button
+                  onClick={() => setTimingFilter('ALL')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    timingFilter === 'ALL' 
+                      ? 'bg-emerald-500 text-slate-950' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setTimingFilter('TODAY')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    timingFilter === 'TODAY' 
+                      ? 'bg-emerald-500 text-slate-950' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  🟢 Today
+                </button>
+                <button
+                  onClick={() => setTimingFilter('TOMORROW')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    timingFilter === 'TOMORROW' 
+                      ? 'bg-emerald-500 text-slate-950' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  ⏳ Tomorrow
+                </button>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />
+
+                {/* Hide Sold Out */}
+                <button
+                  onClick={() => setHideSoldOut(!hideSoldOut)}
+                  className={`flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-bold transition border cursor-pointer ${
+                    hideSoldOut 
+                      ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border-emerald-500/50' 
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                  <span>{hideSoldOut ? 'Hiding Sold Out' : 'Hide Sold Out'}</span>
+                </button>
+              </div>
+
+              {/* Reset Filters Link if active */}
+              {hasActiveFilters && (
+                <button
+                  onClick={resetAllFilters}
+                  className="flex items-center space-x-1 text-xs font-bold text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+            </div>
+
+            {/* Expanded Filter Matrix Drawer */}
             {showFilterDrawer && (
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-4 text-xs">
+              <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs animate-in fade-in">
                 <div>
-                  <label className="font-bold text-slate-200 block mb-2">Dietary Requirements</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-2">Dietary Preferences</label>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setFilterDietary(prev => ({ ...prev, vegetarian: !prev.vegetarian }))}
-                      className={`px-3 py-1.5 rounded-lg border font-semibold cursor-pointer ${filterDietary.vegetarian ? 'bg-emerald-950 text-emerald-400 border-emerald-500' : 'bg-slate-900 text-slate-400 border-slate-800'}`}
-                    >
-                      Vegetarian
-                    </button>
-                    <button
-                      onClick={() => setFilterDietary(prev => ({ ...prev, vegan: !prev.vegan }))}
-                      className={`px-3 py-1.5 rounded-lg border font-semibold cursor-pointer ${filterDietary.vegan ? 'bg-teal-950 text-teal-400 border-teal-500' : 'bg-slate-900 text-slate-400 border-slate-800'}`}
-                    >
-                      Vegan
-                    </button>
-                    <button
-                      onClick={() => setFilterDietary(prev => ({ ...prev, halal: !prev.halal }))}
-                      className={`px-3 py-1.5 rounded-lg border font-semibold cursor-pointer ${filterDietary.halal ? 'bg-amber-950 text-amber-400 border-amber-500' : 'bg-slate-900 text-slate-400 border-slate-800'}`}
-                    >
-                      Halal
-                    </button>
-                    <button
-                      onClick={() => setFilterDietary(prev => ({ ...prev, glutenFree: !prev.glutenFree }))}
-                      className={`px-3 py-1.5 rounded-lg border font-semibold cursor-pointer ${filterDietary.glutenFree ? 'bg-indigo-950 text-indigo-400 border-indigo-500' : 'bg-slate-900 text-slate-400 border-slate-800'}`}
-                    >
-                      Gluten Free
-                    </button>
+                    {(['vegetarian', 'vegan', 'halal', 'glutenFree'] as const).map(diet => (
+                      <button
+                        key={diet}
+                        onClick={() => setFilterDietary(prev => ({ ...prev, [diet]: !prev[diet] }))}
+                        className={`px-3 py-1.5 rounded-xl border font-bold capitalize transition cursor-pointer ${
+                          filterDietary[diet] 
+                            ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-emerald-500' 
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {diet === 'glutenFree' ? 'Gluten Free' : diet}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div>
-                  <div className="flex justify-between font-semibold text-slate-300 mb-1">
-                    <span>Maximum Distance Radius</span>
-                    <span className="text-emerald-400">{maxDistanceKm} km</span>
+                  <div className="flex justify-between font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    <span>Distance Radius</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">{maxDistanceKm} km</span>
                   </div>
                   <input
                     type="range"
@@ -506,23 +445,32 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             )}
           </div>
 
-          {/* AI Demand Forecast Intelligence Widget */}
-          <AIDemandForecastWidget offers={offers} onSelectOffer={onSelectOffer} />
-
-          {/* NATIVE CONTEXTUAL ECO AD BANNER */}
-          <NativeEcoAdBanner adIndex={0} />
-
           {/* OFFERS DISPLAY GRID */}
           {displayMode === 'GRID' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredOffers.map(offer => (
-                <OfferCard
-                  key={offer.id}
-                  offer={offer}
-                  onSelect={onSelectOffer}
-                />
-              ))}
-            </div>
+            filteredOffers.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredOffers.map(offer => (
+                  <OfferCard
+                    key={offer.id}
+                    offer={offer}
+                    onSelect={onSelectOffer}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 text-center bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <p className="text-base font-bold text-slate-800 dark:text-slate-200">No surprise food boxes found</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Try adjusting your search keywords, category, or distance radius.
+                </p>
+                <button
+                  onClick={resetAllFilters}
+                  className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs shadow-md transition cursor-pointer"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            )
           ) : (
             /* INTERACTIVE GEOLOCATION MAP */
             <MarketplaceMap
@@ -542,26 +490,26 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {/* ORDERS TAB CONTENT */}
       {activeTab === 'ORDERS' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-100">Your Active &amp; Past Food Pickups</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Your Active &amp; Past Pickups</h2>
           {orders.length === 0 ? (
-            <div className="p-8 text-center bg-slate-900/50 rounded-2xl border border-slate-800">
-              <p className="text-sm text-slate-400">No orders placed yet. Explore surprise boxes to rescue food!</p>
+            <div className="p-8 text-center bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-500 dark:text-slate-400">No orders placed yet. Explore surprise boxes to rescue food!</p>
             </div>
           ) : (
             <div className="space-y-3">
               {orders.map(order => (
-                <div key={order.id} className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div key={order.id} className="p-5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-mono font-bold text-emerald-400">#{order.orderNumber}</span>
+                      <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">#{order.orderNumber}</span>
                       <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                        order.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                        order.status === 'COMPLETED' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
                       }`}>
                         {order.status}
                       </span>
                     </div>
-                    <h4 className="text-sm font-bold text-slate-200">{order.offerTitle}</h4>
-                    <p className="text-xs text-slate-400">{order.businessName} • {order.pickupWindow}</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">{order.offerTitle}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{order.businessName} • {order.pickupWindow}</p>
                   </div>
                   
                   <div className="flex items-center space-x-3">
@@ -571,15 +519,15 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                         if (matchedOffer) setChefRescueOffer(matchedOffer);
                         setIsChefModalOpen(true);
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
                     >
                       <ChefHat className="w-3.5 h-3.5" />
                       <span>Cook with AI Chef</span>
                     </button>
 
                     <div className="text-right">
-                      <p className="text-xs font-extrabold text-slate-100">{order.totalPrice.toLocaleString()} RWF</p>
-                      <p className="text-[10px] text-slate-400 font-mono">{order.qrToken}</p>
+                      <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{order.totalPrice.toLocaleString()} RWF</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{order.qrToken}</p>
                     </div>
                   </div>
                 </div>
@@ -592,10 +540,10 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {/* FAVORITES TAB CONTENT */}
       {activeTab === 'FAVORITES' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-100">Your Favorite Food Rescue Partners</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Your Favorite Food Rescue Partners</h2>
           {favorites.length === 0 ? (
-            <div className="p-8 text-center bg-slate-900/50 rounded-2xl border border-slate-800">
-              <p className="text-sm text-slate-400">Click the heart icon on any store to get notified when they drop new surprise boxes!</p>
+            <div className="p-8 text-center bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <p className="text-sm text-slate-500 dark:text-slate-400">Click the heart icon on any store to get notified when they drop new surprise boxes!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -604,6 +552,13 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* IMPACT TAB CONTENT */}
+      {activeTab === 'IMPACT' && (
+        <div className="space-y-4">
+          <LoyaltyDashboard />
         </div>
       )}
 

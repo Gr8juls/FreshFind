@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Offer } from '@/lib/mockData';
 import { useApp } from '@/lib/store';
-import { MapPin, Clock, Star, Heart, Flame, Utensils, Coffee, Store, ShoppingBag, Sparkles, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, Star, Heart, Flame, Utensils, Coffee, Store, ShoppingBag, Sparkles } from 'lucide-react';
 
 interface OfferCardProps {
   offer: Offer;
@@ -11,7 +11,7 @@ interface OfferCardProps {
 }
 
 export function OfferCard({ offer, onSelect }: OfferCardProps) {
-  const { favorites, toggleFavorite, setIsChefModalOpen, setChefRescueOffer } = useApp();
+  const { favorites, toggleFavorite } = useApp();
   const [imageError, setImageError] = useState(false);
   const isFav = favorites.includes(offer.businessId);
 
@@ -24,10 +24,10 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
 
   const getCategoryIcon = (cat: string) => {
     switch (cat?.toLowerCase()) {
-      case 'bakery': return <Utensils className="w-8 h-8 text-emerald-400 opacity-60" />;
-      case 'cafe': return <Coffee className="w-8 h-8 text-amber-400 opacity-60" />;
-      case 'supermarket': return <ShoppingBag className="w-8 h-8 text-emerald-400 opacity-60" />;
-      default: return <Store className="w-8 h-8 text-teal-400 opacity-60" />;
+      case 'bakery': return <Utensils className="w-8 h-8 text-emerald-500 opacity-70" />;
+      case 'cafe': return <Coffee className="w-8 h-8 text-amber-500 opacity-70" />;
+      case 'supermarket': return <ShoppingBag className="w-8 h-8 text-emerald-500 opacity-70" />;
+      default: return <Store className="w-8 h-8 text-teal-500 opacity-70" />;
     }
   };
 
@@ -36,20 +36,20 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
       offer.isFeatured
         ? 'border-orange-500/80 shadow-xl shadow-orange-500/10 ring-1 ring-orange-500/50'
         : isSoldOut
-        ? 'border-slate-800/60 opacity-85'
-        : 'border-slate-800 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10'
+        ? 'border-slate-200 dark:border-slate-800/60 opacity-80'
+        : 'border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10'
     }`}>
       
       {/* Featured Drop Banner */}
       {offer.isFeatured && (
-        <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 text-slate-950 text-[10px] font-black uppercase tracking-wider py-1 px-3 text-center flex items-center justify-center space-x-1 shadow-md">
+        <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 text-slate-950 text-[10px] font-black uppercase tracking-wider py-1 px-3 text-center flex items-center justify-center space-x-1 shadow-sm">
           <Flame className="w-3 h-3 fill-slate-950" />
-          <span>{offer.featuredBadge || '🔥 Flash Deal of the Day (Sponsored)'}</span>
+          <span>{offer.featuredBadge || '🔥 Flash Deal of the Day'}</span>
         </div>
       )}
 
       {/* Image / Fallback Container */}
-      <div className="relative h-48 w-full overflow-hidden bg-slate-950 flex items-center justify-center">
+      <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-950 flex items-center justify-center">
         {!imageError && offer.imageUrl ? (
           <img
             src={offer.imageUrl}
@@ -58,75 +58,64 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
             className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? 'grayscale-[50%]' : 'group-hover:scale-105'}`}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-slate-900 via-emerald-950/30 to-slate-950 p-6 flex flex-col items-center justify-center text-center space-y-2 border-b border-slate-800/80">
-            <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-inner">
+          <div className="w-full h-full bg-gradient-to-br from-slate-100 via-emerald-50/50 to-slate-200 dark:from-slate-900 dark:via-emerald-950/30 dark:to-slate-950 p-6 flex flex-col items-center justify-center text-center space-y-2 border-b border-slate-200 dark:border-slate-800/80">
+            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm">
               {getCategoryIcon(offer.category)}
             </div>
-            <span className="text-xs font-bold text-slate-300 line-clamp-1 max-w-[200px]">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 line-clamp-1 max-w-[200px]">
               {offer.title}
             </span>
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/40 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5">
           {isSoldOut ? (
-            <span className="bg-slate-800/90 text-slate-300 text-xs font-black px-2.5 py-1 rounded-lg shadow-lg border border-slate-700">
+            <span className="bg-slate-800/90 text-slate-200 text-xs font-black px-2.5 py-1 rounded-lg shadow-md border border-slate-700">
               Sold Out
             </span>
           ) : (
             <>
-              <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-lg shadow-lg">
+              <span className="bg-emerald-500 text-slate-950 text-xs font-black px-2.5 py-1 rounded-lg shadow-md">
                 -{discountPercent}% OFF
               </span>
-              <span className="bg-slate-900/90 backdrop-blur-md text-emerald-400 text-[10px] font-extrabold px-2 py-1 rounded-lg border border-emerald-500/30 shadow-lg">
+              <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-1 rounded-lg border border-emerald-500/30 shadow-md">
                 Min. {valueMultiplier}x Value
               </span>
             </>
           )}
 
           {offer.aiDemandScore >= 90 && !isSoldOut && (
-            <span className="bg-amber-500/95 backdrop-blur-md text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center space-x-1 shadow-lg">
+            <span className="bg-amber-400 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center space-x-1 shadow-md">
               <Flame className="w-3 h-3 text-slate-950 fill-current" />
               <span>Fast Selling</span>
             </span>
           )}
         </div>
 
-        {/* Action icons right (Favorite & AI Chef) */}
-        <div className="absolute top-3 right-3 z-10 flex items-center space-x-1.5">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setChefRescueOffer(offer);
-              setIsChefModalOpen(true);
-            }}
-            title="Cook with AI Chef"
-            className="p-2 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-amber-400 hover:text-amber-300 hover:bg-slate-800 transition cursor-pointer shadow-md"
-          >
-            <Sparkles className="w-4 h-4" />
-          </button>
-          
+        {/* Favorite Heart Button */}
+        <div className="absolute top-3 right-3 z-10">
           <button
             onClick={(e) => {
               e.stopPropagation();
               toggleFavorite(offer.businessId);
             }}
-            className="p-2 rounded-full bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-slate-300 hover:text-rose-400 transition cursor-pointer shadow-md"
+            aria-label="Save to favorites"
+            className="p-2 rounded-full bg-white/90 dark:bg-slate-900/85 backdrop-blur-md border border-slate-200 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 hover:text-rose-500 transition cursor-pointer shadow-md"
           >
-            <Heart className={`w-4 h-4 ${isFav ? 'text-rose-500 fill-rose-500' : 'text-slate-300'}`} />
+            <Heart className={`w-4 h-4 ${isFav ? 'text-rose-500 fill-rose-500' : ''}`} />
           </button>
         </div>
 
         {/* Distance & Pickup Time overlay */}
-        <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between text-xs text-slate-300 font-medium">
-          <div className="flex items-center space-x-1 bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-800 shadow-sm">
+        <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between text-xs text-white font-medium">
+          <div className="flex items-center space-x-1 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700/60 shadow-sm">
             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
             <span>{offer.distanceKm} km</span>
           </div>
-          <div className="flex items-center space-x-1 bg-slate-900/90 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-800 shadow-sm">
+          <div className="flex items-center space-x-1 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700/60 shadow-sm">
             <Clock className="w-3.5 h-3.5 text-amber-400" />
             <span>{offer.pickupTiming === 'TOMORROW' ? 'Tomorrow' : 'Today'} {offer.pickupStart} - {offer.pickupEnd}</span>
           </div>
@@ -134,52 +123,52 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
       </div>
 
       {/* Card Content */}
-      <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+      <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900/40">
         <div>
           {/* Merchant header */}
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center space-x-2">
-              <div className="w-5 h-5 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden">
-                <Store className="w-3 h-3 text-emerald-400" />
+              <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden">
+                <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <span className="text-xs font-medium text-slate-400 truncate max-w-[160px]">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
                 {offer.businessName}
               </span>
             </div>
-            <div className="flex items-center space-x-1 text-xs text-amber-400 font-semibold">
+            <div className="flex items-center space-x-1 text-xs text-amber-500 dark:text-amber-400 font-bold">
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>{offer.rating}</span>
             </div>
           </div>
 
           {/* Title & Description */}
-          <h3 className="text-base font-bold text-slate-100 group-hover:text-emerald-400 transition-colors line-clamp-1">
+          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1">
             {offer.title}
           </h3>
-          <p className="text-xs text-slate-400 line-clamp-2 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
             {offer.description}
           </p>
 
           {/* Dietary Badges */}
           <div className="flex flex-wrap gap-1.5 mt-2.5">
             {offer.bagType && (
-              <span className="text-[10px] font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-700/50 px-2 py-0.5 rounded-md flex items-center space-x-1">
-                <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+              <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50 px-2 py-0.5 rounded-md flex items-center space-x-1">
+                <Sparkles className="w-2.5 h-2.5 text-emerald-500 dark:text-emerald-400" />
                 <span>{offer.bagType}</span>
               </span>
             )}
             {offer.isVegetarian && (
-              <span className="text-[10px] font-semibold bg-slate-900 text-slate-300 border border-slate-700/60 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded-md">
                 Vegetarian
               </span>
             )}
             {offer.isVegan && (
-              <span className="text-[10px] font-semibold bg-slate-900 text-slate-300 border border-slate-700/60 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded-md">
                 Vegan
               </span>
             )}
             {offer.isHalal && (
-              <span className="text-[10px] font-semibold bg-slate-900 text-slate-300 border border-slate-700/60 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded-md">
                 Halal
               </span>
             )}
@@ -187,19 +176,19 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
         </div>
 
         {/* Pricing & Reservation CTA */}
-        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
           <div>
             <div className="flex items-baseline space-x-2">
-              <span className="text-lg font-black text-emerald-400">
+              <span className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">
                 {offer.discountedPrice?.toLocaleString()} {offer.currency}
               </span>
-              <span className="text-xs text-slate-500 line-through">
+              <span className="text-xs text-slate-400 line-through">
                 {offer.originalPrice?.toLocaleString()}
               </span>
             </div>
-            <span className="text-[11px] font-medium text-slate-400">
+            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {isSoldOut ? (
-                <span className="text-amber-400/90">Next drop: {offer.nextDropTime || 'Tomorrow 16:00'}</span>
+                <span className="text-amber-600 dark:text-amber-400">Next drop: {offer.nextDropTime || 'Tomorrow 16:00'}</span>
               ) : (
                 <span>{offer.quantityAvailable} surprise boxes left</span>
               )}
@@ -209,10 +198,10 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
           <button
             onClick={() => onSelect(offer)}
             disabled={isSoldOut}
-            className={`px-3.5 py-2 rounded-xl font-black text-xs transition transform cursor-pointer ${
+            className={`px-4 py-2 rounded-xl font-extrabold text-xs transition transform cursor-pointer ${
               isSoldOut
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-lg shadow-emerald-500/20 active:scale-95'
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 active:scale-95'
             }`}
           >
             {isSoldOut ? 'Sold Out' : 'Reserve Box'}

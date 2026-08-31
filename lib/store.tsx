@@ -24,8 +24,12 @@ import { UserRole } from './types';
 
 export type { UserRole };
 export type ViewFrame = 'DESKTOP' | 'MOBILE_EMULATOR';
+export type ThemeMode = 'light' | 'dark';
 
 interface AppContextType {
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
   role: UserRole;
   setRole: (role: UserRole) => void;
   viewFrame: ViewFrame;
@@ -124,6 +128,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<ThemeMode>('dark');
   const [role, setRole] = useState<UserRole>('CUSTOMER');
   const [viewFrame, setViewFrame] = useState<ViewFrame>('DESKTOP');
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
@@ -181,6 +186,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       paymentMethod: 'MTN_MOMO',
     }
   ]);
+
+  // Theme management and persistence
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem('freshfind_theme') as ThemeMode | null;
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        setThemeState(savedTheme);
+        if (savedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const initialTheme: ThemeMode = prefersDark ? 'dark' : 'light';
+        setThemeState(initialTheme);
+        if (initialTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    } catch (e) {
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const setTheme = (newTheme: ThemeMode) => {
+    setThemeState(newTheme);
+    try {
+      localStorage.setItem('freshfind_theme', newTheme);
+      if (newTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch (e) {}
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   const addAuditLog = (action: string, target: string, type: AuditLog['type'], severity: AuditLog['severity'] = 'INFO') => {
     const newLog: AuditLog = {
@@ -712,6 +759,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
+      theme, setTheme, toggleTheme,
       role, setRole,
       viewFrame, setViewFrame,
       isCheckoutModalOpen, setIsCheckoutModalOpen,
