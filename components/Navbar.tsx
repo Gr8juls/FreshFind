@@ -218,15 +218,25 @@ export function Navbar() {
               </button>
             )}
 
-            {/* Authentication Buttons */}
+            {/* Authentication & Profile Link */}
             {isAuthenticated ? (
               <div className="flex items-center space-x-2 pl-2 border-l border-slate-200 dark:border-slate-800">
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{user.fullName || user.email}</span>
-                  <span className="text-[10px] font-semibold text-brand-600 dark:text-brand-400">
-                    {user.role === 'BUSINESS_OWNER' ? t.nav.merchantRole : user.role === 'ADMIN' ? t.nav.adminRole : t.nav.shopperRole}
-                  </span>
-                </div>
+                <Link
+                  href="/profile"
+                  className="flex items-center space-x-2 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer group"
+                >
+                  <img
+                    src={user.avatarUrl || 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150'}
+                    alt={user.fullName}
+                    className="w-7 h-7 rounded-xl object-cover border border-emerald-500/50 group-hover:border-emerald-500"
+                  />
+                  <div className="hidden sm:flex flex-col items-start leading-tight">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-500 transition-colors">{user.fullName || user.email}</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      {user.role === 'BUSINESS_OWNER' ? t.nav.merchantRole : user.role === 'ADMIN' ? t.nav.adminRole : t.nav.shopperRole}
+                    </span>
+                  </div>
+                </Link>
                 <button
                   onClick={logout}
                   title={t.nav.signOut}

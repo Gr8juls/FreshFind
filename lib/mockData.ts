@@ -25,6 +25,9 @@ export interface Business {
   lat?: number;
   lng?: number;
   phone: string;
+  isNewStore?: boolean;
+  communityFavorite?: boolean;
+  totalRescuedBags?: number;
 }
 
 export interface Offer {
@@ -32,6 +35,7 @@ export interface Offer {
   businessId: string;
   businessName: string;
   businessLogo: string;
+  businessSlug?: string;
   title: string;
   description: string;
   category: string;
@@ -48,6 +52,8 @@ export interface Offer {
   nextDropTime?: string; // e.g. "Tomorrow 16:30"
   imageUrl: string;
   distanceKm: number;
+  lat?: number;
+  lng?: number;
   rating: number;
   isVegetarian: boolean;
   isVegan: boolean;
@@ -59,6 +65,9 @@ export interface Offer {
   featuredBadge?: string;
   aiTags?: string[];
   allergens?: string[];
+  reservedToday?: number;
+  isNewStore?: boolean;
+  communityFavorite?: boolean;
 }
 
 export interface VendorSubscriptionPlan {
@@ -295,6 +304,7 @@ export const INITIAL_OFFERS: Offer[] = [
   {
     id: 'off-1',
     businessId: 'b1',
+    businessSlug: 'kigali-artisan-bakery',
     businessName: 'Kigali Artisan Bakery',
     businessLogo: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Surprise Artisan Pastry Box',
@@ -313,6 +323,8 @@ export const INITIAL_OFFERS: Offer[] = [
     nextDropTime: 'Tomorrow 16:00',
     imageUrl: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 0.8,
+    lat: -1.9355,
+    lng: 30.0880,
     rating: 4.9,
     isVegetarian: true,
     isVegan: false,
@@ -324,10 +336,13 @@ export const INITIAL_OFFERS: Offer[] = [
     featuredBadge: '🔥 Flash Deal of the Day',
     aiTags: ['Almond Croissant', 'French Baguette', 'Pain au Chocolat', 'Tarts'],
     allergens: ['Gluten', 'Dairy', 'Nuts (Almonds)'],
+    reservedToday: 15,
+    communityFavorite: true,
   },
   {
     id: 'off-2',
     businessId: 'b2',
+    businessSlug: 'bourbon-coffee-bistro',
     businessName: 'Bourbon Coffee & Bistro',
     businessLogo: 'https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Gourmet Sandwich & Snack Magic Bag',
@@ -346,6 +361,8 @@ export const INITIAL_OFFERS: Offer[] = [
     nextDropTime: 'Tomorrow 17:00',
     imageUrl: 'https://images.pexels.com/photos/1647163/pexels-photo-1647163.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 1.2,
+    lat: -1.9536,
+    lng: 30.0605,
     rating: 4.8,
     isVegetarian: false,
     isVegan: false,
@@ -353,10 +370,13 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: false,
     aiDemandScore: 88,
     aiPriceSuggestion: 5800,
+    reservedToday: 9,
+    communityFavorite: true,
   },
   {
     id: 'off-3',
     businessId: 'b3',
+    businessSlug: 'simba-supermarket',
     businessName: 'Simba Supermarket Express',
     businessLogo: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Fresh Grocery & Deli Rescue Box',
@@ -375,6 +395,8 @@ export const INITIAL_OFFERS: Offer[] = [
     nextDropTime: 'Tomorrow 18:00',
     imageUrl: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 2.1,
+    lat: -1.9440,
+    lng: 30.0750,
     rating: 4.7,
     isVegetarian: false,
     isVegan: false,
@@ -382,10 +404,13 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: true,
     aiDemandScore: 91,
     aiPriceSuggestion: 7200,
+    reservedToday: 18,
+    communityFavorite: false,
   },
   {
     id: 'off-4',
     businessId: 'b4',
+    businessSlug: 'grand-legacy-hotel',
     businessName: 'Grand Legacy Hotel Buffet',
     businessLogo: 'https://images.pexels.com/photos/260922/pexels-photo-260922.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Executive Buffet Feast Magic Box',
@@ -404,6 +429,8 @@ export const INITIAL_OFFERS: Offer[] = [
     nextDropTime: 'Tomorrow 19:30',
     imageUrl: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 3.4,
+    lat: -1.9560,
+    lng: 30.1080,
     rating: 4.95,
     isVegetarian: false,
     isVegan: false,
@@ -411,10 +438,13 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: true,
     aiDemandScore: 97,
     aiPriceSuggestion: 9800,
+    reservedToday: 12,
+    communityFavorite: true,
   },
   {
     id: 'off-5',
     businessId: 'b5',
+    businessSlug: 'green-leaf-salad-bar',
     businessName: 'Green Leaf Organic Salad Bar',
     businessLogo: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Superfood Vegan Surplus Bowl',
@@ -433,6 +463,8 @@ export const INITIAL_OFFERS: Offer[] = [
     nextDropTime: 'Tomorrow 07:30',
     imageUrl: 'https://images.pexels.com/photos/2097090/pexels-photo-2097090.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 1.5,
+    lat: -1.9520,
+    lng: 30.0780,
     rating: 4.85,
     isVegetarian: true,
     isVegan: true,
@@ -440,10 +472,13 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: true,
     aiDemandScore: 85,
     aiPriceSuggestion: 4900,
+    reservedToday: 6,
+    isNewStore: true,
   },
   {
     id: 'off-6',
     businessId: 'b6',
+    businessSlug: 'inzora-rooftop-cafe',
     businessName: 'Inzora Rooftop Cafe',
     businessLogo: 'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg?auto=compress&cs=tinysrgb&w=150',
     title: 'Morning Bakery & Cold Tea Bag',
@@ -462,6 +497,8 @@ export const INITIAL_OFFERS: Offer[] = [
     nextDropTime: 'Tomorrow 08:00',
     imageUrl: 'https://images.pexels.com/photos/1307698/pexels-photo-1307698.jpeg?auto=compress&cs=tinysrgb&w=800',
     distanceKm: 2.8,
+    lat: -1.9410,
+    lng: 30.0720,
     rating: 4.8,
     isVegetarian: true,
     isVegan: false,
@@ -469,6 +506,8 @@ export const INITIAL_OFFERS: Offer[] = [
     isGlutenFree: true,
     aiDemandScore: 92,
     aiPriceSuggestion: 4000,
+    reservedToday: 8,
+    communityFavorite: false,
   }
 ];
 

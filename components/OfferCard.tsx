@@ -1,9 +1,27 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Offer } from '@/lib/mockData';
 import { useApp } from '@/lib/store';
-import { MapPin, Clock, Star, Heart, Flame, Utensils, Coffee, Store, ShoppingBag, Sparkles } from 'lucide-react';
+import { formatDistance } from '@/lib/geolocation';
+import { 
+  MapPin, 
+  Clock, 
+  Star, 
+  Heart, 
+  Flame, 
+  Utensils, 
+  Coffee, 
+  Store, 
+  ShoppingBag, 
+  Sparkles, 
+  Bell, 
+  BellRing, 
+  Check, 
+  Award,
+  Users
+} from 'lucide-react';
 
 interface OfferCardProps {
   offer: Offer;
@@ -11,11 +29,18 @@ interface OfferCardProps {
 }
 
 export function OfferCard({ offer, onSelect }: OfferCardProps) {
-  const { favorites, toggleFavorite, t } = useApp();
+  const { favorites, toggleFavorite, t, subscribeToDropAlert, isSubscribedToDrop, businesses } = useApp();
   const [imageError, setImageError] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  
   const isFav = favorites.includes(offer.businessId);
-
+  const isSubscribed = isSubscribedToDrop(offer.businessId);
   const isSoldOut = offer.quantityAvailable <= 0;
+
+  // Resolve business slug
+  const business = businesses.find(b => b.id === offer.businessId);
+  const storeSlug = offer.businessSlug || business?.slug || 'kigali-artisan-bakery';
+
   const discountPercent = Math.round(
     ((offer.originalPrice - offer.discountedPrice) / offer.originalPrice) * 100
   );
@@ -31,12 +56,19 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
     }
   };
 
+  const handleNotifyMe = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsNotifying(true);
+    await subscribeToDropAlert(offer.businessId, offer.businessName, offer.id);
+    setTimeout(() => setIsNotifying(false), 1200);
+  };
+
   return (
     <div className={`group relative glass-card rounded-3xl overflow-hidden border transition-all duration-300 flex flex-col ${
       offer.isFeatured
         ? 'border-orange-500/80 shadow-xl shadow-orange-500/10 ring-1 ring-orange-500/50'
         : isSoldOut
-        ? 'border-slate-200 dark:border-slate-800/60 opacity-80'
+        ? 'border-slate-200 dark:border-slate-800/60 opacity-90'
         : 'border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/10'
     }`}>
       
@@ -55,7 +87,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
             src={offer.imageUrl}
             alt={offer.title}
             onError={() => setImageError(true)}
-            className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? 'grayscale-[50%]' : 'group-hover:scale-105'}`}
+            className={`w-full h-full object-cover transition-transform duration-500 ${isSoldOut ? 'grayscale-[35%]' : 'group-hover:scale-105'}`}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-slate-100 via-emerald-50/50 to-slate-200 dark:from-slate-900 dark:via-emerald-950/30 dark:to-slate-950 p-6 flex flex-col items-center justify-center text-center space-y-2 border-b border-slate-200 dark:border-slate-800/80">
@@ -68,13 +100,13 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/30 pointer-events-none" />
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5">
           {isSoldOut ? (
-            <span className="bg-slate-800/90 text-slate-200 text-xs font-black px-2.5 py-1 rounded-lg shadow-md border border-slate-700">
-              {t.card.soldOut}
+            <span className="bg-slate-900/90 text-amber-400 text-xs font-black px-2.5 py-1 rounded-lg shadow-md border border-slate-700 flex items-center space-x-1">
+              <span>{t.card.soldOut}</span>
             </span>
           ) : (
             <>
@@ -113,7 +145,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
         <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between text-xs text-white font-medium">
           <div className="flex items-center space-x-1 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700/60 shadow-sm">
             <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{offer.distanceKm} km</span>
+            <span>{formatDistance(offer.distanceKm)}</span>
           </div>
           <div className="flex items-center space-x-1 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700/60 shadow-sm">
             <Clock className="w-3.5 h-3.5 text-amber-400" />
@@ -125,34 +157,66 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
       {/* Card Content */}
       <div className="p-4 flex-1 flex flex-col justify-between space-y-3 bg-white dark:bg-slate-900/40">
         <div>
-          {/* Merchant header */}
+          {/* Merchant header with link to /store/[slug] */}
           <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center space-x-2">
+            <Link
+              href={`/store/${storeSlug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center space-x-2 group/store hover:opacity-80 transition cursor-pointer"
+            >
               <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden">
-                <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                {offer.businessLogo ? (
+                  <img src={offer.businessLogo} alt={offer.businessName} className="w-full h-full object-cover" />
+                ) : (
+                  <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                )}
               </div>
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[160px]">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover/store:text-emerald-600 dark:group-hover/store:text-emerald-400 underline-offset-2 hover:underline truncate max-w-[160px]">
                 {offer.businessName}
               </span>
-            </div>
-            <div className="flex items-center space-x-1 text-xs text-amber-500 dark:text-amber-400 font-bold">
+            </Link>
+            
+            <Link 
+              href={`/store/${storeSlug}#reviews`}
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center space-x-1 text-xs text-amber-500 dark:text-amber-400 font-bold hover:scale-105 transition cursor-pointer"
+            >
               <Star className="w-3.5 h-3.5 fill-current" />
               <span>{offer.rating}</span>
-            </div>
+            </Link>
           </div>
 
           {/* Title & Description */}
-          <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1">
+          <h3 
+            onClick={() => onSelect(offer)}
+            className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors line-clamp-1 cursor-pointer"
+          >
             {offer.title}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
             {offer.description}
           </p>
 
-          {/* Dietary Badges */}
+          {/* Social Proof & Dietary Badges */}
           <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {/* Social proof: Rescued today */}
+            {offer.reservedToday && offer.reservedToday > 5 && (
+              <span className="text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700/50 px-2 py-0.5 rounded-md flex items-center space-x-1">
+                <Users className="w-2.5 h-2.5 text-amber-500" />
+                <span>{offer.reservedToday} rescued today</span>
+              </span>
+            )}
+
+            {/* Social proof: Community Favorite */}
+            {offer.communityFavorite && (
+              <span className="text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50 px-2 py-0.5 rounded-md flex items-center space-x-1">
+                <Award className="w-2.5 h-2.5 text-emerald-500" />
+                <span>Kigali Favorite</span>
+              </span>
+            )}
+
             {offer.bagType && (
-              <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/90 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50 px-2 py-0.5 rounded-md flex items-center space-x-1">
+              <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md flex items-center space-x-1">
                 <Sparkles className="w-2.5 h-2.5 text-emerald-500 dark:text-emerald-400" />
                 <span>{offer.bagType}</span>
               </span>
@@ -175,7 +239,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
           </div>
         </div>
 
-        {/* Pricing & Reservation CTA */}
+        {/* Pricing & Reservation / Notify CTA */}
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
           <div>
             <div className="flex items-baseline space-x-2">
@@ -188,24 +252,47 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
             </div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {isSoldOut ? (
-                <span className="text-amber-600 dark:text-amber-400">{t.card.nextDrop} {offer.nextDropTime || '16:00'}</span>
+                <span className="text-amber-600 dark:text-amber-400 font-semibold">{t.card.nextDrop} {offer.nextDropTime || '16:00'}</span>
               ) : (
                 <span>{offer.quantityAvailable} {t.card.boxesLeft}</span>
               )}
             </span>
           </div>
 
-          <button
-            onClick={() => onSelect(offer)}
-            disabled={isSoldOut}
-            className={`px-4 py-2 rounded-xl font-extrabold text-xs transition transform cursor-pointer ${
-              isSoldOut
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 active:scale-95'
-            }`}
-          >
-            {isSoldOut ? t.card.soldOut : t.card.reserveBox}
-          </button>
+          {isSoldOut ? (
+            <button
+              onClick={handleNotifyMe}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer shadow-sm ${
+                isSubscribed
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-slate-900 dark:bg-slate-800 hover:bg-emerald-600 text-white dark:text-slate-100 border border-slate-700'
+              }`}
+            >
+              {isSubscribed ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Subscribed</span>
+                </>
+              ) : isNotifying ? (
+                <>
+                  <BellRing className="w-3.5 h-3.5 animate-bounce text-amber-400" />
+                  <span>Enabling...</span>
+                </>
+              ) : (
+                <>
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Notify Me</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => onSelect(offer)}
+              className="px-4 py-2 rounded-xl font-extrabold text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 active:scale-95 transition transform cursor-pointer"
+            >
+              {t.card.reserveBox}
+            </button>
+          )}
         </div>
       </div>
 

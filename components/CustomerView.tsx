@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Offer } from '@/lib/mockData';
+import { Offer, Order } from '@/lib/mockData';
 import { OfferCard } from './OfferCard';
 import { MarketplaceMap } from './MarketplaceMap';
 import { AIChefRescueModal } from './AIChefRescueModal';
+import { ReviewModal } from './ReviewModal';
 import LoyaltyDashboard from './LoyaltyDashboard';
 import { Language } from '@/lib/translations';
 
@@ -23,7 +24,12 @@ import {
   EyeOff,
   ChefHat,
   RotateCcw,
-  Award
+  Award,
+  Navigation,
+  ArrowUpDown,
+  Star,
+  MapPin,
+  Compass
 } from 'lucide-react';
 
 interface CustomerViewProps {
@@ -39,6 +45,8 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     setSearchQuery, 
     selectedCategory, 
     setSelectedCategory,
+    sortBy,
+    setSortBy,
     filterDietary,
     setFilterDietary,
     maxDistanceKm,
@@ -49,22 +57,30 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     setLanguage,
     t,
     setIsChefModalOpen,
-    setChefRescueOffer
+    setChefRescueOffer,
+    userDistrict,
+    isRealGps,
+    requestGpsLocation,
+    openReviewModal
   } = useApp();
 
   const [displayMode, setDisplayMode] = useState<'GRID' | 'MAP'>('GRID');
   const [activeTab, setActiveTab] = useState<'OFFERS' | 'ORDERS' | 'FAVORITES' | 'IMPACT'>('OFFERS');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [isGpsLoading, setIsGpsLoading] = useState(false);
   
   // Filtering states
   const [timingFilter, setTimingFilter] = useState<'ALL' | 'TODAY' | 'TOMORROW'>('ALL');
   const [hideSoldOut, setHideSoldOut] = useState(false);
 
-  // Review modal state
-  const [reviewSuccessToast, setReviewSuccessToast] = useState(false);
+  const handleRefreshGps = async () => {
+    setIsGpsLoading(true);
+    await requestGpsLocation();
+    setTimeout(() => setIsGpsLoading(false), 800);
+  };
 
   // Filter logic
-  const filteredOffers = offers.filter(offer => {
+  let filteredOffers = offers.filter(offer => {
     // Search query match
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -98,6 +114,25 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     return true;
   });
 
+  // Sort logic
+  filteredOffers = [...filteredOffers].sort((a, b) => {
+    if (sortBy === 'DISTANCE') {
+      return a.distanceKm - b.distanceKm;
+    }
+    if (sortBy === 'DISCOUNT') {
+      const discA = (a.originalPrice - a.discountedPrice) / a.originalPrice;
+      const discB = (b.originalPrice - b.discountedPrice) / b.originalPrice;
+      return discB - discA;
+    }
+    if (sortBy === 'RATING') {
+      return b.rating - a.rating;
+    }
+    if (sortBy === 'DEMAND') {
+      return b.aiDemandScore - a.aiDemandScore;
+    }
+    return 0;
+  });
+
   const CATEGORIES = [
     { key: 'All', label: t.filters.allDeals, icon: '⚡' },
     { key: 'Bakery', label: t.filters.bakery, icon: '🥐' },
@@ -117,85 +152,78 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     filterDietary.vegan || 
     filterDietary.halal || 
     filterDietary.glutenFree || 
-    maxDistanceKm < 10;
+    maxDistanceKm < 10 ||
+    sortBy !== 'DISTANCE';
 
   const resetAllFilters = () => {
     setSelectedCategory('All');
     setTimingFilter('ALL');
     setHideSoldOut(false);
     setSearchQuery('');
-    setFilterDietary({ vegetarian: false, vegan: false, halal: false, glutenFree: false });
+    setSortBy('DISTANCE');
+    setFilterDietary({
+      vegetarian: false,
+      vegan: false,
+      halal: false,
+      glutenFree: false,
+    });
     setMaxDistanceKm(10);
   };
 
-  // Check if any favorited store has active bags
+  // Find favorite stores active bags for quick notification banner
   const favoriteActiveBags = offers.filter(o => favorites.includes(o.businessId) && o.quantityAvailable > 0);
 
   return (
-    <div className="space-y-6 pb-16 font-sans">
+    <div className="space-y-6">
       
-      {/* Review Success Toast */}
-      {reviewSuccessToast && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 animate-in fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-          <span className="text-xs font-semibold">Thank you for rating food freshness &amp; supporting Kigali artisans!</span>
-        </div>
-      )}
+      {/* HERO BANNER */}
+      <div className="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 text-white shadow-xl overflow-hidden border border-emerald-500/20">
+        <div className="absolute -right-10 -bottom-10 w-72 h-72 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 max-w-2xl space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-emerald-200 text-xs font-bold border border-white/20">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>{t.hero.valueBadge}</span>
+            </span>
 
-      {/* HERO BANNER & INTRO */}
-      <div className="relative rounded-3xl overflow-hidden glass-panel border border-slate-200 dark:border-slate-800 p-6 sm:p-7 bg-gradient-to-r from-white via-emerald-50/40 to-slate-50 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 transition-colors duration-200">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          
-          <div className="space-y-2.5 max-w-xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/30 px-3 py-0.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{t.hero.valueBadge}</span>
-              </div>
-
-              {/* Language Switcher */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-600 dark:text-slate-300 space-x-1">
-                <Globe className="w-3 h-3 text-emerald-500" />
-                {(['EN', 'FR', 'RW'] as const).map(lang => (
-                  <button
-                    key={lang}
-                    onClick={() => setLanguage(lang)}
-                    className={`px-1.5 py-0.5 rounded cursor-pointer transition ${language === lang ? 'bg-emerald-500 text-slate-950 font-black' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-                  >
-                    {lang}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
-              {t.hero.title}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-              {t.hero.subtitle}
-            </p>
+            {/* GPS Location Pill */}
+            <button
+              onClick={handleRefreshGps}
+              className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-slate-950/40 backdrop-blur-md text-slate-200 hover:text-white text-xs font-bold border border-white/20 transition cursor-pointer"
+            >
+              <Navigation className={`w-3.5 h-3.5 ${isGpsLoading ? 'animate-spin text-amber-400' : isRealGps ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <span>{isRealGps ? '📍 Live GPS:' : '📍 Location:'} {userDistrict}</span>
+            </button>
           </div>
 
-          {/* Environmental Impact Quick Metrics */}
-          <div className="grid grid-cols-3 gap-3 bg-white/80 dark:bg-slate-950/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-md">
-            <div className="text-center">
-              <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">{user.mealsRescued}</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t.hero.bagsRescued}</div>
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
+            {t.hero.title}
+          </h1>
+
+          <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed max-w-xl">
+            {t.hero.subtitle}
+          </p>
+
+          {/* Quick Value Metrics Pill */}
+          <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-bold text-emerald-200">
+            <div className="flex items-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+              <span>{user.mealsRescued} {t.hero.bagsRescued}</span>
             </div>
-            <div className="text-center border-x border-slate-200 dark:border-slate-800 px-2">
-              <div className="text-base sm:text-lg font-black text-teal-600 dark:text-teal-400">{user.co2SavedKg} kg</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t.hero.co2Avoided}</div>
+            <div className="flex items-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+              <span>{user.co2SavedKg} kg {t.hero.co2Avoided}</span>
             </div>
-            <div className="text-center">
-              <div className="text-base sm:text-lg font-black text-amber-500 dark:text-amber-400">480 pts</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t.hero.ecoPoints}</div>
+            <div className="flex items-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+              <span>{user.points} {t.hero.ecoPoints}</span>
             </div>
           </div>
-
         </div>
       </div>
 
-      {/* Favorite Store Drop Alert Banner (if available) */}
+      {/* FAVORITE STORE ALERT BANNER */}
       {favoriteActiveBags.length > 0 && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/50 dark:to-slate-900 border border-emerald-200 dark:border-emerald-500/40 flex items-center justify-between gap-4 transition-colors">
           <div className="flex items-center space-x-3">
@@ -299,7 +327,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {activeTab === 'OFFERS' && (
         <div className="space-y-6">
           
-          {/* UNIFIED FILTER TOOLBAR */}
+          {/* UNIFIED FILTER & SORT TOOLBAR */}
           <div className="space-y-3 bg-white/70 dark:bg-slate-900/60 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 backdrop-blur-md shadow-sm">
             
             {/* Row 1: Categories Bar */}
@@ -338,7 +366,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               </button>
             </div>
 
-            {/* Row 2: Timing & Quick Toggles */}
+            {/* Row 2: Timing, Sorting & Quick Toggles */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.filters.timingLabel}</span>
@@ -389,16 +417,34 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                 </button>
               </div>
 
-              {/* Reset Filters Link if active */}
-              {hasActiveFilters && (
-                <button
-                  onClick={resetAllFilters}
-                  className="flex items-center space-x-1 text-xs font-bold text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition cursor-pointer"
+              {/* Sort By Pills */}
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 flex items-center space-x-1">
+                  <ArrowUpDown className="w-3 h-3" />
+                  <span>Sort:</span>
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>{t.filters.resetFilters}</span>
-                </button>
-              )}
+                  <option value="DISTANCE">📍 Closest First</option>
+                  <option value="DISCOUNT">💰 Highest Discount</option>
+                  <option value="RATING">⭐ Top Rated</option>
+                  <option value="DEMAND">🔥 High Demand</option>
+                </select>
+
+                {/* Reset Filters Link if active */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={resetAllFilters}
+                    className="flex items-center space-x-1 text-xs font-bold text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition ml-2 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>{t.filters.resetFilters}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Expanded Filter Matrix Drawer */}
@@ -481,6 +527,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
 
           {/* Modals */}
           <AIChefRescueModal />
+          <ReviewModal />
         </div>
       )}
 
@@ -509,7 +556,16 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                     <p className="text-xs text-slate-500 dark:text-slate-400">{order.businessName} • {order.pickupWindow}</p>
                   </div>
                   
-                  <div className="flex items-center space-x-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Review Button */}
+                    <button
+                      onClick={() => openReviewModal(order)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/15 hover:text-amber-500 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
+                    >
+                      <Star className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Review</span>
+                    </button>
+
                     <button
                       onClick={() => {
                         const matchedOffer = offers.find(o => o.id === order.offerId);
@@ -522,7 +578,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                       <span>{t.orders.cookWithChef}</span>
                     </button>
 
-                    <div className="text-right">
+                    <div className="text-right pl-2">
                       <p className="text-xs font-extrabold text-slate-900 dark:text-slate-100">{order.totalPrice.toLocaleString()} RWF</p>
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{order.qrToken}</p>
                     </div>
@@ -531,6 +587,8 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               ))}
             </div>
           )}
+
+          <ReviewModal />
         </div>
       )}
 

@@ -22,10 +22,14 @@ import {
 } from './mockData';
 import { UserRole } from './types';
 import { Language, Translations, TRANSLATIONS } from './translations';
+import { GeoCoordinates, DEFAULT_KIGALI_CENTER, calculateDistanceKm, getCurrentUserLocation } from './geolocation';
+import { Review, INITIAL_REVIEWS } from './reviews';
+import { DropAlertSubscription, requestNotificationPermission, showAppNotification } from './pushNotifications';
 
 export type { UserRole, Language, Translations };
 export type ViewFrame = 'DESKTOP' | 'MOBILE_EMULATOR';
 export type ThemeMode = 'light' | 'dark';
+export type SortOption = 'DISTANCE' | 'DISCOUNT' | 'RATING' | 'DEMAND';
 
 interface AppContextType {
   theme: ThemeMode;
@@ -38,6 +42,12 @@ interface AppContextType {
   setRole: (role: UserRole) => void;
   viewFrame: ViewFrame;
   setViewFrame: (frame: ViewFrame) => void;
+  
+  // Geolocation & Live Distance
+  userCoords: GeoCoordinates;
+  isRealGps: boolean;
+  userDistrict: string;
+  requestGpsLocation: () => Promise<void>;
   
   isCheckoutModalOpen: boolean;
   setIsCheckoutModalOpen: (isOpen: boolean) => void;
@@ -56,6 +66,19 @@ interface AppContextType {
   orders: Order[];
   favorites: string[]; // businessIds
   
+  // Reviews & Rating System
+  reviews: Review[];
+  submitReview: (review: Omit<Review, 'id' | 'createdAt' | 'helpfulCount' | 'verifiedRescue'>) => void;
+  isReviewModalOpen: boolean;
+  reviewTargetOrder: Order | null;
+  openReviewModal: (order: Order) => void;
+  closeReviewModal: () => void;
+  
+  // Drop Alerts & Push Notifications
+  dropSubscriptions: DropAlertSubscription[];
+  subscribeToDropAlert: (businessId: string, businessName: string, offerId?: string) => Promise<boolean>;
+  isSubscribedToDrop: (businessId: string) => boolean;
+  
   // Admin Data & Management
   users: PlatformUser[];
   disputes: Dispute[];
@@ -63,11 +86,13 @@ interface AppContextType {
   auditLogs: AuditLog[];
   systemSettings: SystemSettings;
   
-  // Search & Filters
+  // Search & Filters & Sorting
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
+  sortBy: SortOption;
+  setSortBy: (sort: SortOption) => void;
   filterDietary: {
     vegetarian: boolean;
     vegan: boolean;
@@ -107,6 +132,7 @@ interface AppContextType {
   toggleFavorite: (businessId: string) => Promise<void>;
   verifyAndCollectQR: (qrToken: string) => Promise<{ success: boolean; message: string; order?: Order }>;
   createMerchantOffer: (newOffer: Omit<Offer, 'id' | 'businessLogo' | 'rating' | 'aiDemandScore' | 'aiPriceSuggestion'>) => Promise<void>;
+  registerNewBusiness: (business: Omit<Business, 'id' | 'rating' | 'totalReviews' | 'distanceKm' | 'isVerified'>) => Promise<Business>;
   quickAdjustOfferStock: (offerId: string, delta: number) => void;
   cancelOfferAndRefund: (offerId: string) => Promise<void>;
   addWalletBalance: (amount: number) => Promise<void>;
@@ -151,17 +177,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [offers, setOffers] = useState<Offer[]>(INITIAL_OFFERS);
   const [businesses, setBusinesses] = useState<Business[]>(INITIAL_BUSINESSES);
   const [favorites, setFavorites] = useState<string[]>(['b1', 'b4']);
-  
+
+  // Geolocation state
+  const [userCoords, setUserCoords] = useState<GeoCoordinates>(DEFAULT_KIGALI_CENTER);
+  const [isRealGps, setIsRealGps] = useState<boolean>(false);
+  const [userDistrict, setUserDistrict] = useState<string>('Kigali Center');
+
+  // Reviews state
+  const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState<boolean>(false);
+  const [reviewTargetOrder, setReviewTargetOrder] = useState<Order | null>(null);
+
+  // Drop Alerts / Push Notifications state
+  const [dropSubscriptions, setDropSubscriptions] = useState<DropAlertSubscription[]>([]);
+
   // Admin Data States
   const [users, setUsers] = useState<PlatformUser[]>(INITIAL_PLATFORM_USERS);
   const [disputes, setDisputes] = useState<Dispute[]>(INITIAL_DISPUTES);
   const [payouts, setPayouts] = useState<PayoutRecord[]>(INITIAL_PAYOUTS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(INITIAL_SYSTEM_SETTINGS);
-  
-  // Search & Filters
+
+  // Search, Filters & Sorting
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState<SortOption>('DISTANCE');
   const [filterDietary, setFilterDietary] = useState({
     vegetarian: false,
     vegan: false,
@@ -437,6 +477,119 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('Favorite sync error:', e);
     }
+  };
+
+  // Geolocation methods
+  const updateDistances = useCallback((coords: GeoCoordinates) => {
+    setOffers(prev => prev.map(o => {
+      if (o.lat && o.lng) {
+        const dist = calculateDistanceKm(coords.lat, coords.lng, o.lat, o.lng);
+        return { ...o, distanceKm: dist };
+      }
+      return o;
+    }));
+    setBusinesses(prev => prev.map(b => {
+      if (b.lat && b.lng) {
+        const dist = calculateDistanceKm(coords.lat, coords.lng, b.lat, b.lng);
+        return { ...b, distanceKm: dist };
+      }
+      return b;
+    }));
+  }, []);
+
+  const requestGpsLocation = useCallback(async () => {
+    const loc = await getCurrentUserLocation();
+    setUserCoords(loc.coords);
+    setIsRealGps(loc.isRealGps);
+    if (loc.districtName) setUserDistrict(loc.districtName);
+    updateDistances(loc.coords);
+  }, [updateDistances]);
+
+  // Initial location request
+  useEffect(() => {
+    requestGpsLocation();
+  }, [requestGpsLocation]);
+
+  // Reviews methods
+  const submitReview = (reviewData: Omit<Review, 'id' | 'createdAt' | 'helpfulCount' | 'verifiedRescue'>) => {
+    const newReview: Review = {
+      ...reviewData,
+      id: `rev-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      helpfulCount: 0,
+      verifiedRescue: true,
+    };
+    setReviews(prev => [newReview, ...prev]);
+
+    // Update store average rating
+    setBusinesses(prev => prev.map(b => {
+      if (b.id === reviewData.businessId) {
+        const allStoreReviews = [newReview, ...reviews.filter(r => r.businessId === b.id)];
+        const avg = Number((allStoreReviews.reduce((sum, r) => sum + r.rating, 0) / allStoreReviews.length).toFixed(1));
+        return { ...b, rating: avg, totalReviews: (b.totalReviews || 0) + 1 };
+      }
+      return b;
+    }));
+
+    // Update offer rating
+    setOffers(prev => prev.map(o => {
+      if (o.businessId === reviewData.businessId) {
+        return { ...o, rating: Math.min(5, Number((o.rating * 0.8 + reviewData.rating * 0.2).toFixed(1))) };
+      }
+      return o;
+    }));
+  };
+
+  const openReviewModal = (order: Order) => {
+    setReviewTargetOrder(order);
+    setIsReviewModalOpen(true);
+  };
+
+  const closeReviewModal = () => {
+    setIsReviewModalOpen(false);
+    setReviewTargetOrder(null);
+  };
+
+  // Drop Alerts
+  const subscribeToDropAlert = async (businessId: string, businessName: string, offerId?: string): Promise<boolean> => {
+    const granted = await requestNotificationPermission();
+    const newSub: DropAlertSubscription = {
+      id: `sub-${Date.now()}`,
+      businessId,
+      businessName,
+      offerId,
+      subscribedAt: new Date().toISOString(),
+      active: true,
+    };
+    setDropSubscriptions(prev => [...prev.filter(s => s.businessId !== businessId), newSub]);
+    
+    showAppNotification(`🔔 Subscribed to ${businessName}!`, {
+      body: `You'll be the first to know when ${businessName} drops new surprise bags.`,
+    });
+    return granted;
+  };
+
+  const isSubscribedToDrop = (businessId: string): boolean => {
+    return dropSubscriptions.some(s => s.businessId === businessId && s.active);
+  };
+
+  // Business Onboarding
+  const registerNewBusiness = async (businessData: Omit<Business, 'id' | 'rating' | 'totalReviews' | 'distanceKm' | 'isVerified'>): Promise<Business> => {
+    const newBusiness: Business = {
+      ...businessData,
+      id: `b-${Date.now()}`,
+      rating: 5.0,
+      totalReviews: 1,
+      distanceKm: businessData.lat && businessData.lng ? calculateDistanceKm(userCoords.lat, userCoords.lng, businessData.lat, businessData.lng) : 1.5,
+      isVerified: true,
+      status: 'APPROVED',
+      isNewStore: true,
+      totalRescuedBags: 0,
+    };
+
+    setBusinesses(prev => [newBusiness, ...prev]);
+    addAuditLog('MERCHANT_SELF_ONBOARDED', newBusiness.name, 'APPROVAL', 'INFO');
+    return newBusiness;
   };
 
   const verifyAndCollectQR = async (qrToken: string) => {
@@ -782,6 +935,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       language, setLanguage, t,
       role, setRole,
       viewFrame, setViewFrame,
+      userCoords, isRealGps, userDistrict, requestGpsLocation,
       isCheckoutModalOpen, setIsCheckoutModalOpen,
       isQRScannerModalOpen, setIsQRScannerModalOpen,
       isChefModalOpen, setIsChefModalOpen,
@@ -792,13 +946,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       user, setUser,
       isAuthenticated, isLoadingSession, fetchSession, logout,
       offers, businesses, orders, favorites,
+      reviews, submitReview, isReviewModalOpen, reviewTargetOrder, openReviewModal, closeReviewModal,
+      dropSubscriptions, subscribeToDropAlert, isSubscribedToDrop,
       users, disputes, payouts, auditLogs, systemSettings,
       searchQuery, setSearchQuery,
       selectedCategory, setSelectedCategory,
+      sortBy, setSortBy,
       filterDietary, setFilterDietary,
       maxDistanceKm, setMaxDistanceKm,
       cartOffer, cartQuantity, setCartQuantity, addToCart, clearCart, checkoutOrder,
-      toggleFavorite, verifyAndCollectQR, createMerchantOffer, quickAdjustOfferStock, cancelOfferAndRefund, addWalletBalance,
+      toggleFavorite, verifyAndCollectQR, createMerchantOffer, registerNewBusiness, quickAdjustOfferStock, cancelOfferAndRefund, addWalletBalance,
       applyDynamicMarkdown, upgradeBusinessSubscription, boostOfferAsFeatured,
       approveBusiness, suspendBusiness, reactivateBusiness, updateBusinessCommission,
       updateUserRole, updateUserStatus, creditUserWallet, resolveDispute,

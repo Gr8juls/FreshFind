@@ -7,7 +7,7 @@ import { MobileFrameContainer } from '@/components/MobileFrameContainer';
 import { CheckoutModal } from '@/components/CheckoutModal';
 import { QRScannerModal } from '@/components/QRScannerModal';
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export function PortalLayout({ children }: { children: React.ReactNode }) {
   const { isCheckoutModalOpen, setIsCheckoutModalOpen, isQRScannerModalOpen, setIsQRScannerModalOpen } = useApp();
 
   return (
@@ -55,3 +55,5 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     </div>
   );
 }
+
+export default PortalLayout;
