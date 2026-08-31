@@ -11,7 +11,7 @@ interface OfferCardProps {
 }
 
 export function OfferCard({ offer, onSelect }: OfferCardProps) {
-  const { favorites, toggleFavorite } = useApp();
+  const { favorites, toggleFavorite, t } = useApp();
   const [imageError, setImageError] = useState(false);
   const isFav = favorites.includes(offer.businessId);
 
@@ -44,7 +44,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
       {offer.isFeatured && (
         <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 text-slate-950 text-[10px] font-black uppercase tracking-wider py-1 px-3 text-center flex items-center justify-center space-x-1 shadow-sm">
           <Flame className="w-3 h-3 fill-slate-950" />
-          <span>{offer.featuredBadge || '🔥 Flash Deal of the Day'}</span>
+          <span>{offer.featuredBadge || t.card.featuredDeal}</span>
         </div>
       )}
 
@@ -74,7 +74,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
         <div className="absolute top-3 left-3 z-10 flex flex-wrap items-center gap-1.5">
           {isSoldOut ? (
             <span className="bg-slate-800/90 text-slate-200 text-xs font-black px-2.5 py-1 rounded-lg shadow-md border border-slate-700">
-              Sold Out
+              {t.card.soldOut}
             </span>
           ) : (
             <>
@@ -82,7 +82,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
                 -{discountPercent}% OFF
               </span>
               <span className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md text-emerald-700 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-1 rounded-lg border border-emerald-500/30 shadow-md">
-                Min. {valueMultiplier}x Value
+                {valueMultiplier}x {t.card.minValue}
               </span>
             </>
           )}
@@ -90,7 +90,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
           {offer.aiDemandScore >= 90 && !isSoldOut && (
             <span className="bg-amber-400 text-slate-950 text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center space-x-1 shadow-md">
               <Flame className="w-3 h-3 text-slate-950 fill-current" />
-              <span>Fast Selling</span>
+              <span>{t.card.fastSelling}</span>
             </span>
           )}
         </div>
@@ -117,7 +117,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
           </div>
           <div className="flex items-center space-x-1 bg-slate-900/85 backdrop-blur-md px-2.5 py-1 rounded-lg border border-slate-700/60 shadow-sm">
             <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span>{offer.pickupTiming === 'TOMORROW' ? 'Tomorrow' : 'Today'} {offer.pickupStart} - {offer.pickupEnd}</span>
+            <span>{offer.pickupTiming === 'TOMORROW' ? t.card.tomorrow : t.card.today} {offer.pickupStart} - {offer.pickupEnd}</span>
           </div>
         </div>
       </div>
@@ -159,17 +159,17 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
             )}
             {offer.isVegetarian && (
               <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded-md">
-                Vegetarian
+                {t.filters.vegetarian}
               </span>
             )}
             {offer.isVegan && (
               <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded-md">
-                Vegan
+                {t.filters.vegan}
               </span>
             )}
             {offer.isHalal && (
               <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60 px-2 py-0.5 rounded-md">
-                Halal
+                {t.filters.halal}
               </span>
             )}
           </div>
@@ -188,9 +188,9 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
             </div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {isSoldOut ? (
-                <span className="text-amber-600 dark:text-amber-400">Next drop: {offer.nextDropTime || 'Tomorrow 16:00'}</span>
+                <span className="text-amber-600 dark:text-amber-400">{t.card.nextDrop} {offer.nextDropTime || '16:00'}</span>
               ) : (
-                <span>{offer.quantityAvailable} surprise boxes left</span>
+                <span>{offer.quantityAvailable} {t.card.boxesLeft}</span>
               )}
             </span>
           </div>
@@ -204,7 +204,7 @@ export function OfferCard({ offer, onSelect }: OfferCardProps) {
                 : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 active:scale-95'
             }`}
           >
-            {isSoldOut ? 'Sold Out' : 'Reserve Box'}
+            {isSoldOut ? t.card.soldOut : t.card.reserveBox}
           </button>
         </div>
       </div>

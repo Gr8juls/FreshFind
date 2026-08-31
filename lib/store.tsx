@@ -21,8 +21,9 @@ import {
   INITIAL_SYSTEM_SETTINGS
 } from './mockData';
 import { UserRole } from './types';
+import { Language, Translations, TRANSLATIONS } from './translations';
 
-export type { UserRole };
+export type { UserRole, Language, Translations };
 export type ViewFrame = 'DESKTOP' | 'MOBILE_EMULATOR';
 export type ThemeMode = 'light' | 'dark';
 
@@ -30,6 +31,9 @@ interface AppContextType {
   theme: ThemeMode;
   setTheme: (theme: ThemeMode) => void;
   toggleTheme: () => void;
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: Translations;
   role: UserRole;
   setRole: (role: UserRole) => void;
   viewFrame: ViewFrame;
@@ -129,6 +133,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>('dark');
+  const [language, setLanguageState] = useState<Language>('EN');
   const [role, setRole] = useState<UserRole>('CUSTOMER');
   const [viewFrame, setViewFrame] = useState<ViewFrame>('DESKTOP');
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
@@ -187,7 +192,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   ]);
 
-  // Theme management and persistence
+  // Theme and Language management and persistence
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem('freshfind_theme') as ThemeMode | null;
@@ -207,6 +212,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           document.documentElement.classList.remove('dark');
         }
+      }
+
+      const savedLang = localStorage.getItem('freshfind_language') as Language | null;
+      if (savedLang === 'EN' || savedLang === 'FR' || savedLang === 'RW') {
+        setLanguageState(savedLang);
       }
     } catch (e) {
       document.documentElement.classList.add('dark');
@@ -228,6 +238,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    try {
+      localStorage.setItem('freshfind_language', lang);
+    } catch (e) {}
+  };
+
+  const t = TRANSLATIONS[language] || TRANSLATIONS.EN;
 
   const addAuditLog = (action: string, target: string, type: AuditLog['type'], severity: AuditLog['severity'] = 'INFO') => {
     const newLog: AuditLog = {
@@ -760,6 +779,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       theme, setTheme, toggleTheme,
+      language, setLanguage, t,
       role, setRole,
       viewFrame, setViewFrame,
       isCheckoutModalOpen, setIsCheckoutModalOpen,

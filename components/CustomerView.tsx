@@ -3,27 +3,22 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Offer } from '@/lib/mockData';
-import dynamic from 'next/dynamic';
 import { OfferCard } from './OfferCard';
 import { MarketplaceMap } from './MarketplaceMap';
 import { AIChefRescueModal } from './AIChefRescueModal';
 import LoyaltyDashboard from './LoyaltyDashboard';
+import { Language } from '@/lib/translations';
 
 import { 
-  MapPin, 
   SlidersHorizontal, 
   Grid, 
   Map as MapIcon, 
-  Leaf, 
   Heart, 
   ShoppingBag,
   PackageCheck,
   Globe,
   Sparkles,
-  Star,
   CheckCircle2,
-  X,
-  Clock,
   Bell,
   EyeOff,
   ChefHat,
@@ -50,6 +45,9 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
     setMaxDistanceKm,
     orders,
     favorites,
+    language,
+    setLanguage,
+    t,
     setIsChefModalOpen,
     setChefRescueOffer
   } = useApp();
@@ -57,7 +55,6 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
   const [displayMode, setDisplayMode] = useState<'GRID' | 'MAP'>('GRID');
   const [activeTab, setActiveTab] = useState<'OFFERS' | 'ORDERS' | 'FAVORITES' | 'IMPACT'>('OFFERS');
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
-  const [language, setLanguage] = useState<'EN' | 'FR' | 'RW'>('EN');
   
   // Filtering states
   const [timingFilter, setTimingFilter] = useState<'ALL' | 'TODAY' | 'TOMORROW'>('ALL');
@@ -102,12 +99,12 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
   });
 
   const CATEGORIES = [
-    { name: 'All', icon: '⚡' },
-    { name: 'Bakery', icon: '🥐' },
-    { name: 'Cafe', icon: '☕' },
-    { name: 'Restaurant', icon: '🍲' },
-    { name: 'Supermarket', icon: '🛒' },
-    { name: 'Hotel', icon: '🏨' },
+    { key: 'All', label: t.filters.allDeals, icon: '⚡' },
+    { key: 'Bakery', label: t.filters.bakery, icon: '🥐' },
+    { key: 'Cafe', label: t.filters.cafe, icon: '☕' },
+    { key: 'Restaurant', label: t.filters.restaurant, icon: '🍲' },
+    { key: 'Supermarket', label: t.filters.supermarket, icon: '🛒' },
+    { key: 'Hotel', label: t.filters.hotel, icon: '🏨' },
   ];
 
   // Active filters count
@@ -139,7 +136,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       
       {/* Review Success Toast */}
       {reviewSuccessToast && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 dark:bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 animate-in fade-in">
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 animate-in fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
           <span className="text-xs font-semibold">Thank you for rating food freshness &amp; supporting Kigali artisans!</span>
         </div>
@@ -153,7 +150,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center space-x-1.5 bg-emerald-500/10 border border-emerald-500/30 px-3 py-0.5 rounded-full text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Surprise Bags • 3x Guaranteed Value</span>
+                <span>{t.hero.valueBadge}</span>
               </div>
 
               {/* Language Switcher */}
@@ -172,10 +169,10 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
-              Rescue Delicious Food Bags in Kigali • Up to 70% Off
+              {t.hero.title}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-              Pay 1/3 of regular prices. Collect bakery treats, restaurant buffets, and groceries before closing time.
+              {t.hero.subtitle}
             </p>
           </div>
 
@@ -183,15 +180,15 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
           <div className="grid grid-cols-3 gap-3 bg-white/80 dark:bg-slate-950/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur-md">
             <div className="text-center">
               <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400">{user.mealsRescued}</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Bags Rescued</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t.hero.bagsRescued}</div>
             </div>
             <div className="text-center border-x border-slate-200 dark:border-slate-800 px-2">
               <div className="text-base sm:text-lg font-black text-teal-600 dark:text-teal-400">{user.co2SavedKg} kg</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">CO₂ Avoided</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t.hero.co2Avoided}</div>
             </div>
             <div className="text-center">
               <div className="text-base sm:text-lg font-black text-amber-500 dark:text-amber-400">480 pts</div>
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Eco Points</div>
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t.hero.ecoPoints}</div>
             </div>
           </div>
 
@@ -207,7 +204,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-900 dark:text-slate-100">
-                ⚡ Favorite Alert: <span className="text-emerald-600 dark:text-emerald-400">{favoriteActiveBags[0].businessName}</span> has {favoriteActiveBags[0].quantityAvailable} surprise bags available!
+                ⚡ {t.favorites.alertTitle} <span className="text-emerald-600 dark:text-emerald-400">{favoriteActiveBags[0].businessName}</span> has {favoriteActiveBags[0].quantityAvailable} surprise bags available!
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">Collect today between {favoriteActiveBags[0].pickupStart} - {favoriteActiveBags[0].pickupEnd}</p>
             </div>
@@ -216,7 +213,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             onClick={() => onSelectOffer(favoriteActiveBags[0])}
             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl shadow transition cursor-pointer shrink-0"
           >
-            Quick Grab
+            {t.favorites.quickGrab}
           </button>
         </div>
       )}
@@ -233,7 +230,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Surprise Bags ({filteredOffers.length})</span>
+            <span>{t.tabs.surpriseBags} ({filteredOffers.length})</span>
           </button>
           
           <button
@@ -245,7 +242,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             }`}
           >
             <PackageCheck className="w-3.5 h-3.5" />
-            <span>My Orders ({orders.length})</span>
+            <span>{t.tabs.myOrders} ({orders.length})</span>
           </button>
           
           <button
@@ -257,7 +254,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             }`}
           >
             <Heart className="w-3.5 h-3.5" />
-            <span>Favorites ({favorites.length})</span>
+            <span>{t.tabs.favorites} ({favorites.length})</span>
           </button>
 
           <button
@@ -269,7 +266,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             }`}
           >
             <Award className="w-3.5 h-3.5" />
-            <span>Eco Impact</span>
+            <span>{t.tabs.ecoImpact}</span>
           </button>
         </div>
 
@@ -283,7 +280,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               }`}
             >
               <Grid className="w-3.5 h-3.5" />
-              <span>Grid</span>
+              <span>{t.tabs.grid}</span>
             </button>
             <button
               onClick={() => setDisplayMode('MAP')}
@@ -292,7 +289,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               }`}
             >
               <MapIcon className="w-3.5 h-3.5" />
-              <span>Map</span>
+              <span>{t.tabs.map}</span>
             </button>
           </div>
         )}
@@ -310,16 +307,16 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-none flex-1">
                 {CATEGORIES.map(cat => (
                   <button
-                    key={cat.name}
-                    onClick={() => setSelectedCategory(cat.name)}
+                    key={cat.key}
+                    onClick={() => setSelectedCategory(cat.key)}
                     className={`flex items-center space-x-1 px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                      selectedCategory === cat.name
+                      selectedCategory === cat.key
                         ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950 shadow-md'
                         : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                     }`}
                   >
                     <span>{cat.icon}</span>
-                    <span>{cat.name}</span>
+                    <span>{cat.label}</span>
                   </button>
                 ))}
               </div>
@@ -334,7 +331,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Filters</span>
+                <span>{t.filters.filterButton}</span>
                 {hasActiveFilters && (
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 )}
@@ -344,7 +341,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             {/* Row 2: Timing & Quick Toggles */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Timing:</span>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.filters.timingLabel}</span>
                 <button
                   onClick={() => setTimingFilter('ALL')}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
@@ -353,7 +350,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  All
+                  {t.filters.allTimes}
                 </button>
                 <button
                   onClick={() => setTimingFilter('TODAY')}
@@ -363,7 +360,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  🟢 Today
+                  {t.filters.collectToday}
                 </button>
                 <button
                   onClick={() => setTimingFilter('TOMORROW')}
@@ -373,7 +370,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
-                  ⏳ Tomorrow
+                  {t.filters.collectTomorrow}
                 </button>
 
                 <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1 hidden sm:block" />
@@ -388,7 +385,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                   }`}
                 >
                   <EyeOff className="w-3.5 h-3.5" />
-                  <span>{hideSoldOut ? 'Hiding Sold Out' : 'Hide Sold Out'}</span>
+                  <span>{hideSoldOut ? t.filters.hidingSoldOut : t.filters.hideSoldOut}</span>
                 </button>
               </div>
 
@@ -399,7 +396,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                   className="flex items-center space-x-1 text-xs font-bold text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
-                  <span>Reset Filters</span>
+                  <span>{t.filters.resetFilters}</span>
                 </button>
               )}
             </div>
@@ -408,7 +405,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
             {showFilterDrawer && (
               <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-3 text-xs animate-in fade-in">
                 <div>
-                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-2">Dietary Preferences</label>
+                  <label className="font-bold text-slate-700 dark:text-slate-300 block mb-2">{t.filters.dietaryLabel}</label>
                   <div className="flex flex-wrap gap-2">
                     {(['vegetarian', 'vegan', 'halal', 'glutenFree'] as const).map(diet => (
                       <button
@@ -420,7 +417,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                         }`}
                       >
-                        {diet === 'glutenFree' ? 'Gluten Free' : diet}
+                        {diet === 'vegetarian' ? t.filters.vegetarian : diet === 'vegan' ? t.filters.vegan : diet === 'halal' ? t.filters.halal : t.filters.glutenFree}
                       </button>
                     ))}
                   </div>
@@ -428,7 +425,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
 
                 <div>
                   <div className="flex justify-between font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    <span>Distance Radius</span>
+                    <span>{t.filters.distanceRadius}</span>
                     <span className="text-emerald-600 dark:text-emerald-400">{maxDistanceKm} km</span>
                   </div>
                   <input
@@ -459,15 +456,15 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
               </div>
             ) : (
               <div className="p-12 text-center bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
-                <p className="text-base font-bold text-slate-800 dark:text-slate-200">No surprise food boxes found</p>
+                <p className="text-base font-bold text-slate-800 dark:text-slate-200">{t.card.noItemsTitle}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  Try adjusting your search keywords, category, or distance radius.
+                  {t.card.noItemsDesc}
                 </p>
                 <button
                   onClick={resetAllFilters}
                   className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 font-black text-xs shadow-md transition cursor-pointer"
                 >
-                  Reset All Filters
+                  {t.filters.resetFilters}
                 </button>
               </div>
             )
@@ -490,10 +487,10 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {/* ORDERS TAB CONTENT */}
       {activeTab === 'ORDERS' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Your Active &amp; Past Pickups</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{t.orders.title}</h2>
           {orders.length === 0 ? (
             <div className="p-8 text-center bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-500 dark:text-slate-400">No orders placed yet. Explore surprise boxes to rescue food!</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t.orders.emptyText}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -522,7 +519,7 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
                       className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold transition flex items-center space-x-1 cursor-pointer"
                     >
                       <ChefHat className="w-3.5 h-3.5" />
-                      <span>Cook with AI Chef</span>
+                      <span>{t.orders.cookWithChef}</span>
                     </button>
 
                     <div className="text-right">
@@ -540,10 +537,10 @@ export function CustomerView({ onSelectOffer }: CustomerViewProps) {
       {/* FAVORITES TAB CONTENT */}
       {activeTab === 'FAVORITES' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">Your Favorite Food Rescue Partners</h2>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{t.favorites.title}</h2>
           {favorites.length === 0 ? (
             <div className="p-8 text-center bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <p className="text-sm text-slate-500 dark:text-slate-400">Click the heart icon on any store to get notified when they drop new surprise boxes!</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{t.favorites.emptyText}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

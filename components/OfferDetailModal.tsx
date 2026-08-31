@@ -23,7 +23,7 @@ interface OfferDetailModalProps {
 }
 
 export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferDetailModalProps) {
-  const { addToCart, cartQuantity, setCartQuantity, businesses } = useApp();
+  const { addToCart, cartQuantity, setCartQuantity, businesses, t } = useApp();
   const [timeLeft, setTimeLeft] = useState(899); // 14 mins 59 secs
 
   useEffect(() => {
@@ -76,12 +76,12 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
           <div className="absolute bottom-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md border border-emerald-500/40 rounded-2xl p-3 flex items-center justify-between shadow-xl text-white">
             <div className="flex items-center space-x-2 text-emerald-400 font-medium text-xs">
               <Timer className="w-4 h-4 text-emerald-400 animate-spin" />
-              <span>Surprise Bag Hold Active:</span>
+              <span>{t.modal.holdActive}</span>
               <span className="font-mono font-bold text-white text-sm">
                 {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
               </span>
             </div>
-            <span className="text-[11px] text-slate-300">Guaranteed item lock</span>
+            <span className="text-[11px] text-slate-300">{t.modal.guaranteedLock}</span>
           </div>
         </div>
 
@@ -125,14 +125,14 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
             <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200">
               <span className="flex items-center space-x-1.5 text-emerald-700 dark:text-emerald-400">
                 <Sparkles className="w-4 h-4" />
-                <span>Guaranteed Value Promise ({valueMultiplier}x Value)</span>
+                <span>{t.modal.guaranteedValuePromise} ({valueMultiplier}x Value)</span>
               </span>
               <span className="text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
-                Min. {offer.originalPrice.toLocaleString()} RWF Value
+                Min. {offer.originalPrice.toLocaleString()} {offer.currency} Value
               </span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300">
-              You pay only <strong className="text-emerald-700 dark:text-emerald-400 font-bold">{offer.discountedPrice.toLocaleString()} RWF</strong> ({discountPercent}% discount). By rescuing this package, you avoid ~<strong className="text-slate-900 dark:text-slate-100">2.5 kg of CO₂</strong> emissions!
+              {t.modal.valueDiscountNote.replace('~2.5 kg of CO₂', `~2.5 kg CO₂`)} ({discountPercent}% discount)
             </p>
           </div>
 
@@ -141,18 +141,18 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
               <div className="flex items-center space-x-2 text-xs text-amber-600 dark:text-amber-400 font-bold">
                 <Clock className="w-4 h-4" />
-                <span>Pickup Time ({offer.pickupTiming === 'TOMORROW' ? 'Tomorrow' : 'Today'})</span>
+                <span>{t.modal.pickupTime} ({offer.pickupTiming === 'TOMORROW' ? t.card.tomorrow : t.card.today})</span>
               </div>
               <p className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                 {offer.pickupStart} - {offer.pickupEnd}
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">Arrive at store before the window closes.</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">{t.modal.arrivePrompt}</p>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
               <div className="flex items-center space-x-2 text-xs text-emerald-700 dark:text-emerald-400 font-bold">
                 <MapPin className="w-4 h-4" />
-                <span>Store Location &amp; Contact</span>
+                <span>{t.modal.storeLocation}</span>
               </div>
               <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{business?.address}</p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">{business?.phone}</p>
@@ -162,7 +162,7 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
           {/* Quantity Selector & Price Summary */}
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center space-x-3 bg-slate-100 dark:bg-slate-950 px-3 py-2 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Qty:</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{t.modal.qty}</span>
               <button
                 onClick={() => setCartQuantity(Math.max(1, cartQuantity - 1))}
                 aria-label="Decrease quantity"
@@ -182,10 +182,10 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
 
             <div className="text-right">
               <div className="text-xs text-slate-400 line-through">
-                {(offer.originalPrice * cartQuantity).toLocaleString()} RWF
+                {(offer.originalPrice * cartQuantity).toLocaleString()} {offer.currency}
               </div>
               <div className="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
-                {(offer.discountedPrice * cartQuantity).toLocaleString()} RWF
+                {(offer.discountedPrice * cartQuantity).toLocaleString()} {offer.currency}
               </div>
             </div>
           </div>
@@ -196,7 +196,7 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
         <div className="p-5 sm:p-6 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
           <div className="flex items-center space-x-2 text-xs text-slate-500 dark:text-slate-400">
             <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden sm:inline">100% Refund Guarantee</span>
+            <span className="hidden sm:inline">{t.modal.refundGuarantee}</span>
           </div>
 
           <button
@@ -204,7 +204,7 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
             className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-6 py-3 rounded-2xl font-black text-sm shadow-lg shadow-emerald-500/20 transition transform active:scale-95 cursor-pointer"
           >
             <ShoppingBag className="w-4 h-4" />
-            <span>Reserve &amp; Checkout</span>
+            <span>{t.modal.reserveAndCheckout}</span>
           </button>
         </div>
 

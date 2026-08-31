@@ -6,7 +6,7 @@ import { useApp } from '@/lib/store';
 import { EcoImpactModal } from './EcoImpactModal';
 
 export default function LoyaltyDashboard() {
-  const { user } = useApp();
+  const { user, t } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const meals = user.mealsRescued ?? 18;
@@ -26,10 +26,10 @@ export default function LoyaltyDashboard() {
           <div>
             <div className="flex items-center space-x-2 text-brand-600 dark:text-brand-400 mb-1">
               <Sparkles className="w-4 h-4" />
-              <span className="text-xs font-bold uppercase tracking-widest">Live Eco Footprint</span>
+              <span className="text-xs font-bold uppercase tracking-widest">{t.impact.liveFootprint}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-              Community Food Rescue Impact
+              {t.impact.title}
             </h2>
           </div>
 
@@ -43,7 +43,7 @@ export default function LoyaltyDashboard() {
               onClick={() => setIsModalOpen(true)}
               className="flex items-center space-x-1 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full text-xs font-bold transition border border-slate-200 dark:border-slate-700 cursor-pointer"
             >
-              <span>Equivalence Card</span>
+              <span>{t.impact.viewCard}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -52,8 +52,8 @@ export default function LoyaltyDashboard() {
         {/* Progress Bar to next tier */}
         <div className="mb-6 bg-slate-50 dark:bg-slate-950/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800/80">
           <div className="flex justify-between text-xs mb-2">
-            <span className="text-slate-500 dark:text-slate-400">Eco-Hero Progress</span>
-            <span className="font-bold text-brand-600 dark:text-brand-400">{points} / 1000 Points to Next Tier</span>
+            <span className="text-slate-500 dark:text-slate-400">{t.impact.heroProgress}</span>
+            <span className="font-bold text-brand-600 dark:text-brand-400">{points} / 1000 {t.impact.toNextTier}</span>
           </div>
           <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
             <div 
@@ -74,7 +74,7 @@ export default function LoyaltyDashboard() {
               <Utensils className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <span className="text-2xl font-black text-slate-900 dark:text-white">{meals}</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">Meals Rescued</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">{t.impact.mealsRescued}</span>
           </div>
           
           <div 
@@ -85,7 +85,7 @@ export default function LoyaltyDashboard() {
               <Leaf className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             </div>
             <span className="text-2xl font-black text-teal-600 dark:text-teal-300">{co2} kg</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">CO₂e Avoided</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">{t.impact.co2Avoided}</span>
           </div>
 
           <div 
@@ -96,7 +96,7 @@ export default function LoyaltyDashboard() {
               <Trees className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <span className="text-2xl font-black text-slate-900 dark:text-white">{treeDays}</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">Tree-Days Eq.</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">{t.impact.treeDays}</span>
           </div>
 
           <div 
@@ -107,7 +107,7 @@ export default function LoyaltyDashboard() {
               <Smartphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <span className="text-2xl font-black text-blue-600 dark:text-blue-300">{phoneCharges.toLocaleString()}</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">Phone Charges</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mt-1">{t.impact.phoneCharges}</span>
           </div>
 
         </div>
