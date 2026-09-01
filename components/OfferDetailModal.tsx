@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Offer } from '@/lib/mockData';
 import { useApp } from '@/lib/store';
+import { InlineAuthModal } from './auth/InlineAuthModal';
+
 import { 
   X, 
   MapPin, 
@@ -23,8 +25,9 @@ interface OfferDetailModalProps {
 }
 
 export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferDetailModalProps) {
-  const { addToCart, cartQuantity, setCartQuantity, businesses, t } = useApp();
+  const { addToCart, cartQuantity, setCartQuantity, businesses, t, isAuthenticated } = useApp();
   const [timeLeft, setTimeLeft] = useState(899); // 14 mins 59 secs
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     if (!offer) return;
@@ -47,8 +50,18 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
 
   const handleReserve = () => {
     addToCart(offer);
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     onProceedToCheckout();
   };
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false);
+    onProceedToCheckout();
+  };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md overflow-y-auto">
@@ -209,6 +222,16 @@ export function OfferDetailModal({ offer, onClose, onProceedToCheckout }: OfferD
         </div>
 
       </div>
+
+      {/* Inline Passwordless/Social Auth Modal for checkout */}
+      <InlineAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+        title={`Sign in to reserve from ${offer.businessName}`}
+        subtitle="Quick passwordless login — never lose your meal reservation"
+      />
     </div>
   );
 }
+

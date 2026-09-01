@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppProvider } from "@/lib/store";
 import { NotificationProvider } from "@/components/NotificationProvider";
+import { GoogleAuthProvider } from "@/components/auth/GoogleAuthProvider";
 
 export const metadata: Metadata = {
   title: "FreshFind | Food Rescue Marketplace Kigali",
@@ -34,12 +35,15 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen transition-colors duration-200 antialiased selection:bg-emerald-500 selection:text-slate-950">
-        <AppProvider>
-          <NotificationProvider>
-            {children}
-          </NotificationProvider>
-        </AppProvider>
+        <GoogleAuthProvider>
+          <AppProvider>
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
+          </AppProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );
 }
+

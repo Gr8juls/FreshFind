@@ -74,8 +74,9 @@ describe('FreshFind UI Components', () => {
     it('renders sponsor name and environmental call to action', () => {
       renderWithProvider(<NativeEcoAdBanner adIndex={0} />);
 
-      expect(screen.getByText(/Rwanda Green Fund/i)).toBeInTheDocument();
-      expect(screen.getByText(/Explore Grants/i)).toBeInTheDocument();
+      expect(screen.getByText(/EcoPack Rwanda/i)).toBeInTheDocument();
+      expect(screen.getByText(/Get 20% Off Packaging/i)).toBeInTheDocument();
     });
   });
 });
+
