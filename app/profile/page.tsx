@@ -23,8 +23,11 @@ import {
   LogOut,
   Clock,
   MapPin,
-  Heart
+  Heart,
+  Camera,
+  Edit3
 } from 'lucide-react';
+import { EditProfileModal } from '@/components/EditProfileModal';
 
 export default function ProfilePage() {
   const { 
@@ -45,6 +48,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<'PASSPORT' | 'ORDERS' | 'ALERTS' | 'PAYMENT' | 'SETTINGS'>('PASSPORT');
   const [topupAmount, setTopupAmount] = useState<number>(5000);
   const [topupSuccess, setTopupSuccess] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   const handleTopup = async () => {
     await addWalletBalance(topupAmount);
@@ -59,25 +63,40 @@ export default function ProfilePage() {
         {/* Profile Header Card */}
         <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 transition-colors">
           <div className="flex items-center space-x-4">
-            <div className="relative">
+            {/* Clickable Avatar with Camera Overlay */}
+            <div 
+              onClick={() => setIsEditProfileModalOpen(true)}
+              className="relative group cursor-pointer"
+              title="Click to edit profile photo"
+            >
               <img
                 src={user.avatarUrl || 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150'}
                 alt={user.fullName}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl object-cover border-2 border-emerald-500 shadow-md"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl object-cover border-2 border-emerald-500 shadow-md group-hover:brightness-90 transition-all"
               />
-              <span className="absolute -bottom-1 -right-1 p-1 bg-emerald-500 text-slate-950 rounded-full text-[10px] font-black">
+              <span className="absolute inset-0 bg-black/40 rounded-3xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white">
+                <Camera className="w-5 h-5 drop-shadow" />
+              </span>
+              <span className="absolute -bottom-1 -right-1 p-1 bg-emerald-500 text-slate-950 rounded-full text-[10px] font-black shadow-sm">
                 ✓
               </span>
             </div>
 
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{user.fullName}</h1>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                   {user.role}
                 </span>
+                <button
+                  onClick={() => setIsEditProfileModalOpen(true)}
+                  className="px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition flex items-center space-x-1.5 border border-slate-200 dark:border-slate-700 cursor-pointer shadow-sm ml-1"
+                >
+                  <Edit3 className="w-3 h-3 text-emerald-500" />
+                  <span>Edit Profile</span>
+                </button>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{user.email} • {user.phone}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{user.email} • {user.phone || 'No phone set'}</p>
               <div className="flex items-center space-x-3 mt-2 text-xs font-bold">
                 <span className="text-amber-500 flex items-center space-x-1">
                   <Award className="w-3.5 h-3.5" />
@@ -302,11 +321,26 @@ export default function ProfilePage() {
         {/* Tab 5: Preferences */}
         {activeTab === 'SETTINGS' && (
           <div className="space-y-4">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">App Preferences</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">App Preferences & Account</h2>
             <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 divide-y divide-slate-100 dark:divide-slate-800">
               
-              {/* Theme switch */}
+              {/* Personal Info & Avatar Edit */}
               <div className="pt-2 flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Personal Info & Avatar</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Update your name, contact phone, or profile photo</p>
+                </div>
+                <button
+                  onClick={() => setIsEditProfileModalOpen(true)}
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-xs flex items-center space-x-1.5 border border-emerald-500/30 cursor-pointer transition"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit Profile</span>
+                </button>
+              </div>
+
+              {/* Theme switch */}
+              <div className="pt-4 flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Display Theme</h4>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">Switch between Dark Mode and Light Mode</p>
@@ -361,6 +395,12 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Limited-Access Profile Editor Modal */}
+        <EditProfileModal
+          isOpen={isEditProfileModalOpen}
+          onClose={() => setIsEditProfileModalOpen(false)}
+        />
 
       </div>
     </PortalLayout>

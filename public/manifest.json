@@ -1,7 +1,7 @@
 {
-  "name": "FreshFind — Food Rescue Kigali",
+  "name": "FreshFind — Connecting Food. Saving Money. Reducing Waste.",
   "short_name": "FreshFind",
-  "description": "Rescue delicious surplus food in Kigali at up to 70% off. Reduce food waste and save money.",
+  "description": "Connecting Food. Saving Money. Reducing Waste. Rescue delicious surplus food in Kigali at up to 70% off.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090d16",

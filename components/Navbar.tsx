@@ -10,17 +10,18 @@ import {
   Smartphone, 
   Monitor, 
   Wallet, 
-  QrCode,
-  Search,
-  LogOut,
-  LogIn,
-  ShieldCheck,
-  Store,
-  Sun,
-  Moon,
-  MapPin,
-  Globe
+  QrCode, 
+  Search, 
+  LogOut, 
+  LogIn, 
+  ShieldCheck, 
+  Store, 
+  Sun, 
+  Moon, 
+  MapPin, 
+  Globe 
 } from 'lucide-react';
+import { FreshFindLogo } from '@/components/BrandLogos';
 import { Language } from '@/lib/translations';
 
 export function Navbar() {
@@ -50,16 +51,21 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16 gap-3">
           
           {/* Logo & Platform Name */}
-          <Link href="/" className="flex items-center space-x-2.5 cursor-pointer shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 flex items-center justify-center shadow-md shadow-brand-500/20">
-              <Leaf className="w-6 h-6 text-slate-950 font-bold" />
+          <Link href="/" className="flex items-center space-x-3 cursor-pointer shrink-0 group">
+            <div className="w-10 h-10 rounded-xl bg-slate-900/5 dark:bg-emerald-950/40 p-1 flex items-center justify-center border border-emerald-500/20 group-hover:border-emerald-500/40 transition-colors shadow-sm">
+              <FreshFindLogo className="w-8 h-8" />
             </div>
-            <div>
-              <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-brand-600 dark:from-white dark:via-slate-200 dark:to-brand-400 bg-clip-text text-transparent">
-                FreshFind
-              </span>
-              <span className="hidden lg:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
-                {t.nav.brandSubtitle}
+            <div className="flex flex-col">
+              <div className="flex items-center">
+                <span className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                  Fresh<span className="text-emerald-500 dark:text-emerald-400">Find</span>
+                </span>
+                <span className="hidden xl:inline-block ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                  {t.nav.brandSubtitle}
+                </span>
+              </div>
+              <span className="hidden md:block text-[9px] font-semibold text-slate-400 dark:text-slate-400 tracking-tight leading-none mt-0.5">
+                Connecting Food. Saving Money. Reducing Waste.
               </span>
             </div>
           </Link>

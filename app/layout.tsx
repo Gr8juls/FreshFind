@@ -5,9 +5,12 @@ import { NotificationProvider } from "@/components/NotificationProvider";
 import { GoogleAuthProvider } from "@/components/auth/GoogleAuthProvider";
 
 export const metadata: Metadata = {
-  title: "FreshFind | Food Rescue Marketplace Kigali",
-  description: "Rescue delicious surplus food bags from Kigali bakeries, cafes, and restaurants at up to 70% off.",
+  title: "FreshFind | Connecting Food. Saving Money. Reducing Waste.",
+  description: "Rescue delicious surplus food bags from Kigali bakeries, cafes, and restaurants at up to 70% off. Connecting Food. Saving Money. Reducing Waste.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -30,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

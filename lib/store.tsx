@@ -153,6 +153,7 @@ interface AppContextType {
   processMerchantPayout: (payoutId: string) => Promise<void>;
   updateSystemSettings: (newSettings: Partial<SystemSettings>) => Promise<void>;
   addAuditLog: (action: string, target: string, type: AuditLog['type'], severity?: AuditLog['severity']) => void;
+  updateUserProfile: (updates: { fullName?: string; phone?: string; avatarUrl?: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -258,6 +259,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedLang === 'EN' || savedLang === 'FR' || savedLang === 'RW') {
         setLanguageState(savedLang);
       }
+
+      const savedProfile = localStorage.getItem('freshfind_custom_profile');
+      if (savedProfile) {
+        try {
+          const parsed = JSON.parse(savedProfile);
+          setUser(prev => ({
+            ...prev,
+            fullName: parsed.fullName || prev.fullName,
+            phone: parsed.phone || prev.phone,
+            avatarUrl: parsed.avatarUrl || prev.avatarUrl,
+          }));
+        } catch (e) {}
+      }
     } catch (e) {
       document.documentElement.classList.add('dark');
     }
@@ -314,6 +328,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ...prev,
             id: data.user.id,
             fullName: data.user.fullName || prev.fullName,
+            phone: data.user.phone || prev.phone,
+            avatarUrl: data.user.avatarUrl || prev.avatarUrl,
             email: data.user.email || prev.email,
             role: data.user.role,
             walletBalance: data.user.walletBalance ?? prev.walletBalance,
@@ -929,6 +945,41 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addAuditLog('OFFER_BOOSTED_FEATURED', offerId, 'APPROVAL', 'INFO');
   };
 
+  const updateUserProfile = async (updates: { fullName?: string; phone?: string; avatarUrl?: string }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setUser(prev => {
+        const next = {
+          ...prev,
+          fullName: updates.fullName !== undefined ? updates.fullName : prev.fullName,
+          phone: updates.phone !== undefined ? updates.phone : prev.phone,
+          avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : prev.avatarUrl,
+        };
+        try {
+          localStorage.setItem('freshfind_custom_profile', JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
+
+      if (isAuthenticated) {
+        const res = await fetch('/api/auth/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          return { success: false, error: errData.error || 'Failed to update profile on server' };
+        }
+      }
+
+      addAuditLog('USER_PROFILE_UPDATED', user?.email || 'user', 'SECURITY', 'INFO');
+      return { success: true };
+    } catch (err: any) {
+      console.error('Failed to update user profile:', err);
+      return { success: false, error: err?.message || 'Network error' };
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       theme, setTheme, toggleTheme,
@@ -959,7 +1010,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       applyDynamicMarkdown, upgradeBusinessSubscription, boostOfferAsFeatured,
       approveBusiness, suspendBusiness, reactivateBusiness, updateBusinessCommission,
       updateUserRole, updateUserStatus, creditUserWallet, resolveDispute,
-      deleteOfferByAdmin, processMerchantPayout, updateSystemSettings, addAuditLog
+      deleteOfferByAdmin, processMerchantPayout, updateSystemSettings, addAuditLog,
+      updateUserProfile
     }}>
       {children}
     </AppContext.Provider>
